@@ -182,7 +182,7 @@ function riskInfo(q){
 
 function render(data){
   const ri=riskInfo(tQ);
-  let html=`<div class="res"><div class="rh"><span class="rt">🔥 Multipla del Giorno</span><span class="rtg">`${data.day === 'domani' ? '📅 Domani · ' : ''}Target x${tQ}`</span></div>`;
+  let html=`<div class="res"><div class="rh"><span class="rt">🔥 Multipla ${data.day === 'domani' ? 'di Domani' : 'di Oggi'}</span><span class="rtg">Target x${tQ}</span></div>`;
   data.picks.forEach((p,i)=>{
     const pct=Math.round(p.prob*100);
     const o25=Math.round((p.probs?.over25||0)*100);
@@ -210,7 +210,7 @@ function render(data){
     </div>`;
   });
   const dots=ri.dots.map(c=>`<div class="rd ${c}"></div>`).join('');
-  html+=`<div class="tot"><div><div class="tlbl">QUOTA TOTALE</div><div class="tsub">ottimizzata verso x${tQ} • ${data.picks.length} selezioni</div></div><div class="tval">${data.total_odds}</div></div>
+  html+=`<div class="tot"><div><div class="tlbl">QUOTA TOTALE</div><div class="tsub">ottimizzata verso x${tQ} • ${data.picks.length} selezioni • prob. ${data.combo_probability||'—'}%</div></div><div class="tval">${data.total_odds}</div></div>
   <div class="riskbar">${dots}</div><div class="rlbl">${ri.lbl}</div></div>`;
   document.getElementById('results').innerHTML=html;
   document.getElementById('sbar').style.display='flex';
