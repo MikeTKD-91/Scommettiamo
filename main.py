@@ -353,9 +353,6 @@ def generate():
     italy_tz = timezone(timedelta(hours=italy_offset))
     now_italy = now_utc.astimezone(italy_tz)
     today_end_utc = now_italy.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
-    tomorrow_start_utc = now_italy.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc) + timedelta(days=1)
-    tomorrow_end_utc   = now_italy.replace(hour=23, minute=59, second=59).astimezone(timezone.utc) + timedelta(days=1)
-
     def fetch_picks(start_utc, end_utc):
         picks, found = [], []
         for lg in LEAGUES:
@@ -383,15 +380,23 @@ def generate():
             if len(picks) >= 100: break
         return picks, found
 
-    all_picks, leagues_found = fetch_picks(now_utc, today_end_utc)
-    is_tomorrow = False
+    # Prova oggi, poi domani, poi dopodomani — finestra mobile 48h
+    all_picks, leagues_found, is_tomorrow = [], [], False
+    day_offset = 0
+
+    for day_offset in range(3):  # oggi, domani, dopodomani
+        start = (now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        end   = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        # Per oggi usa now_utc come start (no partite già iniziate)
+        if day_offset == 0:
+            start = now_utc
+        all_picks, leagues_found = fetch_picks(start, end)
+        if all_picks:
+            is_tomorrow = day_offset > 0
+            break
 
     if not all_picks:
-        all_picks, leagues_found = fetch_picks(tomorrow_start_utc, tomorrow_end_utc)
-        is_tomorrow = True
-
-    if not all_picks:
-        return jsonify({"error": f"Nessuna partita trovata ne oggi ne domani ({now_italy.strftime('%d/%m/%Y')})."}), 404
+        return jsonify({"error": "Nessuna partita trovata nei prossimi 3 giorni. Riprova più tardi."}), 404
 
     seen, unique = set(), []
     for p in all_picks:
