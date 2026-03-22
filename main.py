@@ -505,39 +505,41 @@ def generate():
         "cache_used": cache_used,
     })
 
-@app.route("/test-understat")
-def test_understat():
-    import json
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Referer": "https://understat.com/",
-        "X-Requested-With": "XMLHttpRequest",
-        "Accept": "application/json, text/javascript, */*",
-    }
-    results = {}
-    # Understat ha endpoint AJAX interni
-    test_endpoints = [
-        ("teams_stats",    "https://understat.com/main/getTeamsStats/league/EPL/season/2024"),
-        ("league_players", "https://understat.com/main/getLeaguePlayersStats/league/EPL/season/2024"),
-        ("team_stats_sa",  "https://understat.com/main/getTeamsStats/league/Serie_A/season/2024"),
-        ("fixtures",       "https://understat.com/main/getFixtures/league/EPL/season/2024"),
-    ]
-    for name, url in test_endpoints:
-        try:
-            r = requests.get(url, headers=headers, timeout=10)
-            try:
-                data = r.json()
-                results[name] = {
-                    "status": r.status_code,
-                    "type": type(data).__name__,
-                    "count": len(data) if isinstance(data, (list,dict)) else None,
-                    "sample": str(data)[:400] if data else None,
-                }
-            except:
-                results[name] = {"status": r.status_code, "raw": r.text[:300]}
-        except Exception as e:
-            results[name] = {"error": str(e)}
-    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
+@app.route("/test-understat")
+def test_understat():
+    h = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://google.com"
+    }
+    r = requests.get("https://understat.com/league/Serie_A/2024", headers=h, timeout=12)
+    html = r.text
+
+    import re as rx
+
+    # Cerca script src
+    scripts = rx.findall(r'src=[\'"]([^\'"]+)[\'"]', html)
+
+    # Cerca variabili JS
+    js_vars = rx.findall(r'var\s+(\w+)\s*=', html)
+
+    # Cerca contenuto script inline
+    inline_raw = rx.findall(r'<script[^>]*>([\s\S]{30,}?)</script>', html)
+    inline_preview = [s.strip()[:400] for s in inline_raw][:6]
+
+    # Cerca URL pattern nel JS
+    url_patterns = rx.findall(r'["\']/([\w/]+)["\']', html)
+    unique_urls = list(set(url_patterns))[:25]
+
+    return jsonify({
+        "status": r.status_code,
+        "html_length": len(html),
+        "scripts": scripts[:10],
+        "js_vars": js_vars[:20],
+        "inline_scripts": inline_preview,
+        "url_patterns": unique_urls,
+    })
