@@ -342,17 +342,15 @@ def generate():
     body     = request.get_json() or {}
     odds_key = (body.get("odds_api_key") or "").strip()
     fd_key   = (body.get("football_api_key") or "").strip() or None
-    target   = float(body.get("target", 3))
 
     if not odds_key:
         return jsonify({"error": "Odds API key mancante"}), 400
 
-    cfg = get_cfg(target)
     now_utc = datetime.now(timezone.utc)
     italy_offset = 2 if now_utc.month in [4,5,6,7,8,9,10] else 1
     italy_tz = timezone(timedelta(hours=italy_offset))
     now_italy = now_utc.astimezone(italy_tz)
-    today_end_utc = now_italy.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
+
     def fetch_picks(start_utc, end_utc):
         picks, found = [], []
         for lg in LEAGUES:
@@ -377,17 +375,14 @@ def generate():
                 for ev in day_events:
                     picks.extend(analyze_event(ev, lg, fd_key))
             except: continue
-            if len(picks) >= 100: break
+            if len(picks) >= 150: break
         return picks, found
 
-    # Prova oggi, poi domani, poi dopodomani — finestra mobile 48h
-    all_picks, leagues_found, is_tomorrow = [], [], False
-    day_offset = 0
-
-    for day_offset in range(3):  # oggi, domani, dopodomani
+    # Cerca oggi, domani, dopodomani — una sola sessione di chiamate API
+    all_picks, leagues_found, is_tomorrow, day_offset = [], [], False, 0
+    for day_offset in range(3):
         start = (now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)).astimezone(timezone.utc)
         end   = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
-        # Per oggi usa now_utc come start (no partite già iniziate)
         if day_offset == 0:
             start = now_utc
         all_picks, leagues_found = fetch_picks(start, end)
@@ -398,6 +393,7 @@ def generate():
     if not all_picks:
         return jsonify({"error": "Nessuna partita trovata nei prossimi 3 giorni. Riprova più tardi."}), 404
 
+    # Deduplica
     seen, unique = set(), []
     for p in all_picks:
         k = f"{p['match']}|{p['name']}"
@@ -405,26 +401,49 @@ def generate():
             seen.add(k)
             unique.append(p)
 
-    combo = find_best_combo(unique, target, cfg)
-    if not combo:
-        return jsonify({"error": "Impossibile costruire una multipla. Riprova tra qualche ora."}), 404
+    day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
 
-    total_odds  = round(math.prod(p["odds"] for p in combo), 2)
-    combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
-    value_count = sum(1 for p in combo if p["edge"] > 0.02)
+    # Genera una multipla per ogni target — pick NON ripetuti tra multipla
+    TARGETS = [3, 5, 8, 10]
+    multiples = []
+    used_matches = set()  # traccia partite gia usate
 
-    day_label = "domani" if is_tomorrow else "oggi"
+    for target in TARGETS:
+        cfg = get_cfg(target)
+
+        # Escludi pick di partite gia usate nelle multipla precedenti
+        available = [p for p in unique if p["match"] not in used_matches]
+        if not available:
+            available = unique  # fallback: riusa tutto se non bastano
+
+        combo = find_best_combo(available, target, cfg)
+        if combo:
+            # Aggiungi le partite usate al set
+            for p in combo:
+                used_matches.add(p["match"])
+
+            total_odds  = round(math.prod(p["odds"] for p in combo), 2)
+            combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            value_count = sum(1 for p in combo if p["edge"] > 0.02)
+
+            multiples.append({
+                "target":            target,
+                "total_odds":        total_odds,
+                "combo_probability": combo_prob,
+                "picks":             combo,
+                "value_in_combo":    value_count,
+            })
+
+    if not multiples:
+        return jsonify({"error": "Impossibile costruire multipla. Riprova tra qualche ora."}), 404
 
     return jsonify({
-        "total_odds":        total_odds,
-        "combo_probability": combo_prob,
-        "picks":             combo,
+        "multiples":         multiples,
+        "day":               day_label,
         "leagues_with_data": len(leagues_found),
         "matches_analyzed":  len({p["match"] for p in unique}),
         "value_bets_found":  sum(1 for p in unique if p["edge"] > 0.02),
-        "value_in_combo":    value_count,
         "football_api_used": fd_key is not None,
-        "day":               day_label,
     })
 
 if __name__ == "__main__":
