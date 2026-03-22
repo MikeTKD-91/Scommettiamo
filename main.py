@@ -7,21 +7,44 @@ app = Flask(__name__)
 CORS(app)
 
 LEAGUES = [
-    {"key": "soccer_epl",                    "name": "Premier League",   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": "PL"},
-    {"key": "soccer_italy_serie_a",          "name": "Serie A",          "flag": "🇮🇹",  "fd_code": "SA"},
-    {"key": "soccer_spain_la_liga",          "name": "La Liga",          "flag": "🇪🇸",  "fd_code": "PD"},
-    {"key": "soccer_germany_bundesliga",     "name": "Bundesliga",       "flag": "🇩🇪",  "fd_code": "BL1"},
-    {"key": "soccer_france_ligue_one",       "name": "Ligue 1",          "flag": "🇫🇷",  "fd_code": "FL1"},
-    {"key": "soccer_efl_champ",              "name": "Championship",     "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
-    {"key": "soccer_italy_serie_b",          "name": "Serie B",          "flag": "🇮🇹",  "fd_code": None},
-    {"key": "soccer_spain_segunda_division", "name": "La Liga 2",        "flag": "🇪🇸",  "fd_code": None},
-    {"key": "soccer_germany_bundesliga2",    "name": "Bundesliga 2",     "flag": "🇩🇪",  "fd_code": None},
-    {"key": "soccer_uefa_champs_league",     "name": "Champions League", "flag": "🏆",   "fd_code": "CL"},
-    {"key": "soccer_england_league1",        "name": "League One",       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
-    {"key": "soccer_germany_liga3",          "name": "3. Liga",          "flag": "🇩🇪",  "fd_code": None},
-    {"key": "soccer_portugal_primeira_liga", "name": "Primeira Liga",    "flag": "🇵🇹",  "fd_code": "PPL"},
-    {"key": "soccer_netherlands_eredivisie", "name": "Eredivisie",       "flag": "🇳🇱",  "fd_code": "DED"},
-    {"key": "soccer_uefa_europa_league",     "name": "Europa League",    "flag": "🏆",   "fd_code": "EL"},
+    # Top 5 europei — weekend + coppe
+    {"key": "soccer_epl",                        "name": "Premier League",    "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": "PL"},
+    {"key": "soccer_italy_serie_a",              "name": "Serie A",           "flag": "🇮🇹",  "fd_code": "SA"},
+    {"key": "soccer_spain_la_liga",              "name": "La Liga",           "flag": "🇪🇸",  "fd_code": "PD"},
+    {"key": "soccer_germany_bundesliga",         "name": "Bundesliga",        "flag": "🇩🇪",  "fd_code": "BL1"},
+    {"key": "soccer_france_ligue_one",           "name": "Ligue 1",           "flag": "🇫🇷",  "fd_code": "FL1"},
+    # Coppe europee — martedi/giovedi
+    {"key": "soccer_uefa_champs_league",         "name": "Champions League",  "flag": "🏆",   "fd_code": "CL"},
+    {"key": "soccer_uefa_europa_league",         "name": "Europa League",     "flag": "🏆",   "fd_code": "EL"},
+    {"key": "soccer_uefa_europa_conference_league", "name": "Conference League", "flag": "🏆", "fd_code": None},
+    # Qualificazioni mondiali — infrasettimanale
+    {"key": "soccer_fifa_world_cup_qualifiers_europe", "name": "Qual. Mondiali", "flag": "🌍", "fd_code": None},
+    # Seconde divisioni europee — infrasettimanale
+    {"key": "soccer_efl_champ",                  "name": "Championship",      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
+    {"key": "soccer_italy_serie_b",              "name": "Serie B",           "flag": "🇮🇹",  "fd_code": None},
+    {"key": "soccer_spain_segunda_division",     "name": "La Liga 2",         "flag": "🇪🇸",  "fd_code": None},
+    {"key": "soccer_germany_bundesliga2",        "name": "Bundesliga 2",      "flag": "🇩🇪",  "fd_code": None},
+    {"key": "soccer_england_league1",            "name": "League One",        "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
+    {"key": "soccer_germany_liga3",              "name": "3. Liga",           "flag": "🇩🇪",  "fd_code": None},
+    {"key": "soccer_france_ligue_two",           "name": "Ligue 2",           "flag": "🇫🇷",  "fd_code": None},
+    # Altri europei con partite infrasettimanali
+    {"key": "soccer_portugal_primeira_liga",     "name": "Primeira Liga",     "flag": "🇵🇹",  "fd_code": "PPL"},
+    {"key": "soccer_netherlands_eredivisie",     "name": "Eredivisie",        "flag": "🇳🇱",  "fd_code": "DED"},
+    {"key": "soccer_belgium_first_div",          "name": "Jupiler Pro League","flag": "🇧🇪",  "fd_code": None},
+    {"key": "soccer_greece_super_league",        "name": "Super League",      "flag": "🇬🇷",  "fd_code": None},
+    {"key": "soccer_turkey_super_lig",           "name": "Süper Lig",         "flag": "🇹🇷",  "fd_code": None},
+    {"key": "soccer_austria_bundesliga",         "name": "Bundesliga AT",     "flag": "🇦🇹",  "fd_code": None},
+    {"key": "soccer_switzerland_superleague",    "name": "Super League CH",   "flag": "🇨🇭",  "fd_code": None},
+    {"key": "soccer_spl",                        "name": "Scottish Premier",  "flag": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "fd_code": None},
+    # Sudamerica — giocano spesso infrasettimanale
+    {"key": "soccer_brazil_campeonato",          "name": "Brasil Série A",    "flag": "🇧🇷",  "fd_code": None},
+    {"key": "soccer_argentina_primera_division", "name": "Primera División",  "flag": "🇦🇷",  "fd_code": None},
+    {"key": "soccer_conmebol_copa_libertadores", "name": "Copa Libertadores", "flag": "🌎",   "fd_code": None},
+    # USA/Asia — coprono i giorni vuoti
+    {"key": "soccer_usa_mls",                    "name": "MLS",               "flag": "🇺🇸",  "fd_code": None},
+    {"key": "soccer_japan_j_league",             "name": "J-League",          "flag": "🇯🇵",  "fd_code": None},
+    {"key": "soccer_korea_kleague1",             "name": "K League 1",        "flag": "🇰🇷",  "fd_code": None},
+    {"key": "soccer_mexico_ligamx",              "name": "Liga MX",           "flag": "🇲🇽",  "fd_code": None},
 ]
 
 TARGET_CONFIG = {
