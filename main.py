@@ -330,37 +330,45 @@ def generate():
     italy_tz = timezone(timedelta(hours=italy_offset))
     now_italy = now_utc.astimezone(italy_tz)
     today_end_utc = now_italy.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
+    tomorrow_start_utc = now_italy.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc) + timedelta(days=1)
+    tomorrow_end_utc   = now_italy.replace(hour=23, minute=59, second=59).astimezone(timezone.utc) + timedelta(days=1)
 
-    all_picks, leagues_found = [], []
+    def fetch_picks(start_utc, end_utc):
+        picks, found = [], []
+        for lg in LEAGUES:
+            try:
+                url = (f"https://api.the-odds-api.com/v4/sports/{lg['key']}/odds/"
+                       f"?apiKey={odds_key}&regions=eu&markets=totals&oddsFormat=decimal")
+                r = requests.get(url, timeout=8)
+                if not r.ok: continue
+                events = r.json()
+                if not isinstance(events, list) or not events: continue
+                day_events = []
+                for ev in events:
+                    ct = ev.get("commence_time", "")
+                    if not ct: continue
+                    try:
+                        t = datetime.fromisoformat(ct.replace("Z", "+00:00"))
+                        if start_utc <= t <= end_utc:
+                            day_events.append(ev)
+                    except: continue
+                if not day_events: continue
+                found.append(lg["name"])
+                for ev in day_events:
+                    picks.extend(analyze_event(ev, lg, fd_key))
+            except: continue
+            if len(picks) >= 100: break
+        return picks, found
 
-    for lg in LEAGUES:
-        try:
-            url = (f"https://api.the-odds-api.com/v4/sports/{lg['key']}/odds/"
-                   f"?apiKey={odds_key}&regions=eu&markets=totals&oddsFormat=decimal")
-            r = requests.get(url, timeout=8)
-            if not r.ok: continue
-            events = r.json()
-            if not isinstance(events, list) or not events: continue
-
-            today_events = []
-            for ev in events:
-                ct = ev.get("commence_time", "")
-                if not ct: continue
-                try:
-                    t = datetime.fromisoformat(ct.replace("Z", "+00:00"))
-                    if now_utc <= t <= today_end_utc:
-                        today_events.append(ev)
-                except: continue
-
-            if not today_events: continue
-            leagues_found.append(lg["name"])
-            for ev in today_events:
-                all_picks.extend(analyze_event(ev, lg, fd_key))
-        except: continue
-        if len(all_picks) >= 100: break
+    all_picks, leagues_found = fetch_picks(now_utc, today_end_utc)
+    is_tomorrow = False
 
     if not all_picks:
-        return jsonify({"error": f"Nessuna partita trovata per oggi ({now_italy.strftime('%d/%m/%Y')})."}), 404
+        all_picks, leagues_found = fetch_picks(tomorrow_start_utc, tomorrow_end_utc)
+        is_tomorrow = True
+
+    if not all_picks:
+        return jsonify({"error": f"Nessuna partita trovata ne oggi ne domani ({now_italy.strftime('%d/%m/%Y')})."}), 404
 
     seen, unique = set(), []
     for p in all_picks:
@@ -377,6 +385,8 @@ def generate():
     combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
     value_count = sum(1 for p in combo if p["edge"] > 0.02)
 
+    day_label = "domani" if is_tomorrow else "oggi"
+
     return jsonify({
         "total_odds":        total_odds,
         "combo_probability": combo_prob,
@@ -386,6 +396,7 @@ def generate():
         "value_bets_found":  sum(1 for p in unique if p["edge"] > 0.02),
         "value_in_combo":    value_count,
         "football_api_used": fd_key is not None,
+        "day":               day_label,
     })
 
 if __name__ == "__main__":
