@@ -24,83 +24,6 @@ LEAGUES = [
     {"key": "soccer_uefa_europa_league",     "name": "Europa League",    "flag": "🏆",   "fb_id": 3},
 ]
 
-# Mappa nomi The Odds API → API-Football
-NAME_MAP = {
-    # Italia
-    "AC Milan": "Milan",
-    "AS Roma": "Roma",
-    "Atalanta BC": "Atalanta",
-    "Inter Milan": "Inter",
-    "Hellas Verona": "Verona",
-    "Parma Calcio 1913": "Parma",
-    # Inghilterra
-    "Manchester United": "Manchester United",
-    "Manchester City": "Manchester City",
-    "Nottingham Forest": "Nottingham Forest",
-    "Newcastle United": "Newcastle",
-    "Tottenham Hotspur": "Tottenham",
-    "West Ham United": "West Ham",
-    "Brighton & Hove Albion": "Brighton",
-    "Wolverhampton Wanderers": "Wolves",
-    "Leicester City": "Leicester",
-    "Leeds United": "Leeds",
-    "Aston Villa": "Aston Villa",
-    # Spagna
-    "Athletic Club": "Athletic Club",
-    "Atletico Madrid": "Atletico Madrid",
-    "Real Betis": "Real Betis",
-    "Real Sociedad": "Real Sociedad",
-    "Rayo Vallecano": "Rayo Vallecano",
-    "Deportivo Alaves": "Alaves",
-    "CA Osasuna": "Osasuna",
-    "Girona FC": "Girona",
-    # Germania
-    "Bayer Leverkusen": "Bayer Leverkusen",
-    "Borussia Dortmund": "Borussia Dortmund",
-    "Borussia Monchengladbach": "Borussia M'gladbach",
-    "Eintracht Frankfurt": "Eintracht Frankfurt",
-    "FC Augsburg": "Augsburg",
-    "FC Heidenheim": "Heidenheim",
-    "FC Koln": "FC Köln",
-    "RB Leipzig": "RB Leipzig",
-    "SC Freiburg": "Freiburg",
-    "TSG Hoffenheim": "Hoffenheim",
-    "VfB Stuttgart": "Stuttgart",
-    "VfL Bochum": "Bochum",
-    "VfL Wolfsburg": "Wolfsburg",
-    "Werder Bremen": "Werder Bremen",
-    # Francia
-    "Paris Saint-Germain": "Paris Saint-Germain",
-    "Olympique de Marseille": "Marseille",
-    "Olympique Lyonnais": "Lyon",
-    "AS Monaco": "Monaco",
-    "Stade Rennais FC": "Rennes",
-    "RC Lens": "Lens",
-    "LOSC Lille": "Lille",
-    "OGC Nice": "Nice",
-    "Stade Brestois 29": "Brest",
-    "Toulouse FC": "Toulouse",
-    "AJ Auxerre": "Auxerre",
-    "Angers SCO": "Angers",
-    "Le Havre AC": "Le Havre",
-    "Montpellier HSC": "Montpellier",
-    "Nantes": "Nantes",
-    "RC Strasbourg Alsace": "Strasbourg",
-    "Saint-Etienne": "Saint-Etienne",
-    # Portogallo
-    "SL Benfica": "Benfica",
-    "FC Porto": "Porto",
-    "Sporting CP": "Sporting CP",
-    # Olanda
-    "Ajax": "Ajax",
-    "PSV Eindhoven": "PSV Eindhoven",
-    "Feyenoord": "Feyenoord",
-    "AZ Alkmaar": "AZ",
-}
-
-def normalize_name(name):
-    return NAME_MAP.get(name, name)
-
 _cache = {}
 
 def pmf(lam, k):
@@ -133,13 +56,12 @@ def win_probs(lh, la, hf, af):
     return hw/tot, aw/tot, dr/tot
 
 def get_stats(name, league_id, fb_key):
-    normalized = normalize_name(name)
-    ck = f"{normalized}_{league_id}"
+    ck = f"{name}_{league_id}"
     if ck in _cache: return _cache[ck]
     try:
         h = {"x-apisports-key": fb_key}
         teams = requests.get(
-            f"https://v3.football.api-sports.io/teams?name={requests.utils.quote(normalized)}",
+            f"https://v3.football.api-sports.io/teams?name={requests.utils.quote(name)}",
             headers=h, timeout=5
         ).json().get("response", [])
         if not teams: return None
@@ -235,6 +157,34 @@ def best_combo(picks, target):
 def health():
     return jsonify({"status": "ok"})
 
+@app.route("/test-fb")
+def test_fb():
+    key = request.args.get("key", "")
+    name = request.args.get("name", "Atalanta")
+    league = request.args.get("league", "135")
+    if not key:
+        return jsonify({"error": "Aggiungi ?key=LA_TUA_KEY"})
+    h = {"x-apisports-key": key}
+    # Cerca squadra
+    r1 = requests.get(f"https://v3.football.api-sports.io/teams?name={requests.utils.quote(name)}", headers=h, timeout=5)
+    teams = r1.json().get("response", [])
+    if not teams:
+        return jsonify({"error": f"Squadra '{name}' non trovata", "raw": r1.json()})
+    tid = teams[0]["team"]["id"]
+    found_name = teams[0]["team"]["name"]
+    # Prendi stats
+    r2 = requests.get(f"https://v3.football.api-sports.io/teams/statistics?team={tid}&league={league}&season=2024", headers=h, timeout=5)
+    stats = r2.json().get("response")
+    return jsonify({
+        "searched": name,
+        "found_name": found_name,
+        "team_id": tid,
+        "has_stats": stats is not None,
+        "form": stats.get("form", "N/A") if stats else None,
+        "goals_for_home": stats["goals"]["for"]["total"]["home"] if stats else None,
+        "goals_against_away": stats["goals"]["against"]["total"]["away"] if stats else None,
+    })
+
 @app.route("/generate", methods=["POST"])
 def generate():
     body     = request.get_json() or {}
@@ -245,7 +195,6 @@ def generate():
     if not odds_key:
         return jsonify({"error": "Odds API key mancante"}), 400
 
-    # Orario italiano
     now_utc = datetime.now(timezone.utc)
     italy_offset = 2 if now_utc.month in [4,5,6,7,8,9,10] else 1
     italy_tz = timezone(timedelta(hours=italy_offset))
@@ -295,15 +244,12 @@ def generate():
     if not combo:
         return jsonify({"error": "Impossibile costruire una multipla valida."}), 404
 
-    stats_count = sum(1 for p in combo if p.get("home_form", 0.5) != 0.5 or p.get("away_form", 0.5) != 0.5)
-
     return jsonify({
         "total_odds": round(math.prod(p["odds"] for p in combo), 2),
         "picks": combo,
         "leagues_with_data": len(leagues_found),
         "matches_analyzed": len({p["match"] for p in unique}),
         "football_api_used": fb_key is not None,
-        "picks_with_real_stats": stats_count,
     })
 
 if __name__ == "__main__":
