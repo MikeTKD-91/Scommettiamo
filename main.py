@@ -512,34 +512,37 @@ if __name__ == "__main__":
 
 @app.route("/test-understat")
 def test_understat():
+    import re as rx, json, codecs
     h = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": "https://google.com"
     }
-    r = requests.get("https://understat.com/league/Serie_A/2024", headers=h, timeout=12)
-    html = r.text
 
-    import re as rx
+    # Understat ha dati per squadre, partite, giocatori per lega
+    leagues = {"Serie_A": "SA", "EPL": "PL", "La_liga": "PD", "Bundesliga": "BL1", "Ligue_1": "FL1"}
+    results = {}
 
-    # Cerca script src
-    scripts = rx.findall(r'src=[\'"]([^\'"]+)[\'"]', html)
+    for league_name in ["Serie_A", "EPL"]:
+        url = f"https://understat.com/league/{league_name}/2024"
+        r = requests.get(url, headers=h, timeout=12)
+        html = r.text
 
-    # Cerca variabili JS
-    js_vars = rx.findall(r'var\s+(\w+)\s*=', html)
+        # Decodifica tutti i blocchi JSON.parse con encoding hex \xNN
+        blocks = {}
+        # Cerca var NAME = JSON.parse('...')
+        matches = rx.findall(r"var\s+(\w+)\s*=\s*JSON\.parse\('((?:[^'\\]|\\.)*)'\)", html)
+        for var_name, raw in matches:
+            try:
+                # Decodifica unicode escape (\x22 ecc)
+                decoded = raw.encode('utf-8').decode('unicode_escape')
+                data = json.loads(decoded)
+                if isinstance(data, list):
+                    blocks[var_name] = {"count": len(data), "sample": str(data[0])[:300] if data else None}
+                elif isinstance(data, dict):
+                    blocks[var_name] = {"keys": list(data.keys())[:10], "sample": str(list(data.values())[0])[:200] if data else None}
+            except Exception as e:
+                blocks[var_name] = {"decode_error": str(e), "raw_preview": raw[:100]}
 
-    # Cerca contenuto script inline
-    inline_raw = rx.findall(r'<script[^>]*>([\s\S]{30,}?)</script>', html)
-    inline_preview = [s.strip()[:400] for s in inline_raw][:6]
+        results[league_name] = {"status": r.status_code, "vars_found": blocks}
 
-    # Cerca URL pattern nel JS
-    url_patterns = rx.findall(r'["\']/([\w/]+)["\']', html)
-    unique_urls = list(set(url_patterns))[:25]
-
-    return jsonify({
-        "status": r.status_code,
-        "html_length": len(html),
-        "scripts": scripts[:10],
-        "js_vars": js_vars[:20],
-        "inline_scripts": inline_preview,
-        "url_patterns": unique_urls,
-    })
+    return jsonify(results)
