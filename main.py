@@ -505,20 +505,28 @@ def generate():
         "cache_used": cache_used,
     })
 
-@app.route("/test-fbref")
-def test_fbref():
+@app.route("/test-understat")
+def test_understat():
+    import re, json
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://google.com"}
-    out = {}
-    for name, url in [("fbref_serie_a", "https://fbref.com/en/comps/11/Serie-A-Stats"), ("understat_serie_a", "https://understat.com/league/Serie_A")]:
-        try:
-            r = requests.get(url, headers=headers, timeout=12)
-            html = r.text
-            blocked = r.status_code in [403,503] or "cloudflare" in html.lower() or "checking your browser" in html.lower()
-            has_json = "JSON.parse" in html or "json" in html.lower()
-            out[name] = {"status": r.status_code, "blocked": blocked, "length": len(html), "has_json_data": has_json, "preview": html[200:600]}
-        except Exception as e:
-            out[name] = {"error": str(e)}
-    return jsonify(out)
+    try:
+        r = requests.get("https://understat.com/league/Serie_A", headers=headers, timeout=12)
+        html = r.text
+        # Estrai tutti i blocchi JSON.parse dalla pagina
+        matches = re.findall(r"JSON\.parse\('([^']+)'\)", html)
+        parsed = []
+        for m in matches:
+            try:
+                decoded = bytes(m, "utf-8").decode("unicode_escape")
+                data = json.loads(decoded)
+                if isinstance(data, list) and len(data) > 0:
+                    parsed.append({"type": type(data[0]).__name__, "count": len(data), "sample": str(data[0])[:300]})
+                elif isinstance(data, dict):
+                    parsed.append({"type": "dict", "keys": list(data.keys())[:10], "sample": str(data)[:300]})
+            except: pass
+        return jsonify({"status": r.status_code, "json_blocks_found": len(matches), "parsed": parsed})
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
