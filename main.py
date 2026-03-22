@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests, math, itertools, os
+import requests, math, itertools, os, time
 from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
@@ -58,6 +58,36 @@ TARGET_CONFIG = {
 LEAGUE_AVG = 1.35  # media europea gol per squadra per partita
 _stats_cache = {}
 _team_id_cache = {}
+
+# Cache delle quote — evita chiamate API ripetute
+# Struttura: { "YYYY-MM-DD": {"picks": [...], "leagues": [...], "timestamp": float} }
+_odds_cache = {}
+CACHE_TTL_SECONDS = 60 * 90  # 90 minuti — aggiorna le quote ogni ora e mezza
+
+def get_cache_key(date_str):
+    return date_str
+
+def cache_get(date_str):
+    key = get_cache_key(date_str)
+    if key in _odds_cache:
+        entry = _odds_cache[key]
+        age = time.time() - entry["timestamp"]
+        if age < CACHE_TTL_SECONDS:
+            mins_left = int((CACHE_TTL_SECONDS - age) / 60)
+            return entry["picks"], entry["leagues"], mins_left
+    return None, None, None
+
+def cache_set(date_str, picks, leagues):
+    _odds_cache[get_cache_key(date_str)] = {
+        "picks": picks,
+        "leagues": leagues,
+        "timestamp": time.time(),
+    }
+    # Pulisci cache vecchie (> 2 giorni)
+    now = time.time()
+    old_keys = [k for k, v in _odds_cache.items() if now - v["timestamp"] > 172800]
+    for k in old_keys:
+        del _odds_cache[k]
 
 def get_cfg(target):
     for k in sorted(TARGET_CONFIG.keys()):
@@ -385,19 +415,37 @@ def generate():
             if len(picks) >= 150: break
         return picks, found, None
 
-    # Cerca oggi, domani, dopodomani — una sola sessione di chiamate API
+    # Cerca oggi, domani, dopodomani — con CACHE per risparmiare crediti API
     all_picks, leagues_found, is_tomorrow, day_offset = [], [], False, 0
+    cache_used = False
+
     for day_offset in range(3):
-        start = (now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)).astimezone(timezone.utc)
-        end   = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        day_dt   = now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
+        date_str = day_dt.strftime("%Y-%m-%d")
+        start    = day_dt.astimezone(timezone.utc)
+        end      = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         if day_offset == 0:
             start = now_utc
+
+        # 1. Controlla cache
+        cached_picks, cached_leagues, mins_left = cache_get(date_str)
+        if cached_picks is not None:
+            all_picks    = cached_picks
+            leagues_found = cached_leagues
+            is_tomorrow  = day_offset > 0
+            cache_used   = True
+            break
+
+        # 2. Cache miss — chiama l'API
         result = fetch_picks(start, end)
         if result[2] == "credits_exceeded":
-            return jsonify({"error": "⚠️ Crediti Odds API esauriti! Vai su the-odds-api.com per rinnovare il piano o crea un nuovo account gratuito.", "error_code": "credits_exceeded"}), 429
-        all_picks, leagues_found = result[0], result[1]
-        if all_picks:
-            is_tomorrow = day_offset > 0
+            return jsonify({"error": "⚠️ Crediti Odds API esauriti! Vai su the-odds-api.com per rinnovare.", "error_code": "credits_exceeded"}), 429
+        picks, found = result[0], result[1]
+        if picks:
+            cache_set(date_str, picks, found)
+            all_picks    = picks
+            leagues_found = found
+            is_tomorrow  = day_offset > 0
             break
 
     if not all_picks:
@@ -454,6 +502,7 @@ def generate():
         "matches_analyzed":  len({p["match"] for p in unique}),
         "value_bets_found":  sum(1 for p in unique if p["edge"] > 0.02),
         "football_api_used": fd_key is not None,
+        "cache_used": cache_used,
     })
 
 if __name__ == "__main__":
