@@ -7,24 +7,25 @@ app = Flask(__name__)
 CORS(app)
 
 LEAGUES = [
-    {"key": "soccer_epl",                    "name": "Premier League",   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fb_id": 39},
-    {"key": "soccer_italy_serie_a",          "name": "Serie A",          "flag": "🇮🇹",  "fb_id": 135},
-    {"key": "soccer_spain_la_liga",          "name": "La Liga",          "flag": "🇪🇸",  "fb_id": 140},
-    {"key": "soccer_germany_bundesliga",     "name": "Bundesliga",       "flag": "🇩🇪",  "fb_id": 78},
-    {"key": "soccer_france_ligue_one",       "name": "Ligue 1",          "flag": "🇫🇷",  "fb_id": 61},
-    {"key": "soccer_efl_champ",              "name": "Championship",     "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fb_id": 40},
-    {"key": "soccer_italy_serie_b",          "name": "Serie B",          "flag": "🇮🇹",  "fb_id": 136},
-    {"key": "soccer_spain_segunda_division", "name": "La Liga 2",        "flag": "🇪🇸",  "fb_id": 141},
-    {"key": "soccer_germany_bundesliga2",    "name": "Bundesliga 2",     "flag": "🇩🇪",  "fb_id": 79},
-    {"key": "soccer_uefa_champs_league",     "name": "Champions League", "flag": "🏆",   "fb_id": 2},
-    {"key": "soccer_england_league1",        "name": "League One",       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fb_id": 41},
-    {"key": "soccer_germany_liga3",          "name": "3. Liga",          "flag": "🇩🇪",  "fb_id": 80},
-    {"key": "soccer_portugal_primeira_liga", "name": "Primeira Liga",    "flag": "🇵🇹",  "fb_id": 94},
-    {"key": "soccer_netherlands_eredivisie", "name": "Eredivisie",       "flag": "🇳🇱",  "fb_id": 88},
-    {"key": "soccer_uefa_europa_league",     "name": "Europa League",    "flag": "🏆",   "fb_id": 3},
+    {"key": "soccer_epl",                    "name": "Premier League",   "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": "PL"},
+    {"key": "soccer_italy_serie_a",          "name": "Serie A",          "flag": "🇮🇹",  "fd_code": "SA"},
+    {"key": "soccer_spain_la_liga",          "name": "La Liga",          "flag": "🇪🇸",  "fd_code": "PD"},
+    {"key": "soccer_germany_bundesliga",     "name": "Bundesliga",       "flag": "🇩🇪",  "fd_code": "BL1"},
+    {"key": "soccer_france_ligue_one",       "name": "Ligue 1",          "flag": "🇫🇷",  "fd_code": "FL1"},
+    {"key": "soccer_efl_champ",              "name": "Championship",     "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
+    {"key": "soccer_italy_serie_b",          "name": "Serie B",          "flag": "🇮🇹",  "fd_code": None},
+    {"key": "soccer_spain_segunda_division", "name": "La Liga 2",        "flag": "🇪🇸",  "fd_code": None},
+    {"key": "soccer_germany_bundesliga2",    "name": "Bundesliga 2",     "flag": "🇩🇪",  "fd_code": None},
+    {"key": "soccer_uefa_champs_league",     "name": "Champions League", "flag": "🏆",   "fd_code": "CL"},
+    {"key": "soccer_england_league1",        "name": "League One",       "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
+    {"key": "soccer_germany_liga3",          "name": "3. Liga",          "flag": "🇩🇪",  "fd_code": None},
+    {"key": "soccer_portugal_primeira_liga", "name": "Primeira Liga",    "flag": "🇵🇹",  "fd_code": "PPL"},
+    {"key": "soccer_netherlands_eredivisie", "name": "Eredivisie",       "flag": "🇳🇱",  "fd_code": "DED"},
+    {"key": "soccer_uefa_europa_league",     "name": "Europa League",    "flag": "🏆",   "fd_code": "EL"},
 ]
 
-_cache = {}
+_stats_cache = {}
+_team_id_cache = {}
 
 def pmf(lam, k):
     if lam <= 0: return 0
@@ -55,45 +56,108 @@ def win_probs(lh, la, hf, af):
     tot = hw + aw + dr
     return hw/tot, aw/tot, dr/tot
 
-def get_stats(name, league_id, fb_key):
-    ck = f"{name}_{league_id}"
-    if ck in _cache: return _cache[ck]
+def get_fd_headers(fd_key):
+    return {"X-Auth-Token": fd_key}
+
+def load_team_ids(fd_code, fd_key):
+    """Carica tutti i team ID di una competizione in una sola chiamata"""
+    if fd_code in _team_id_cache:
+        return _team_id_cache[fd_code]
     try:
-        h = {"x-apisports-key": fb_key}
-        teams = requests.get(
-            f"https://v3.football.api-sports.io/teams?name={requests.utils.quote(name)}",
-            headers=h, timeout=5
-        ).json().get("response", [])
-        if not teams: return None
-        tid = teams[0]["team"]["id"]
-        s = requests.get(
-            f"https://v3.football.api-sports.io/teams/statistics?team={tid}&league={league_id}&season=2024",
-            headers=h, timeout=5
-        ).json().get("response")
-        if not s: return None
-        pl   = s["fixtures"]["played"]["total"] or 1
-        pl_h = s["fixtures"]["played"]["home"]  or 1
-        pl_a = s["fixtures"]["played"]["away"]  or 1
+        r = requests.get(
+            f"https://api.football-data.org/v4/competitions/{fd_code}/teams",
+            headers=get_fd_headers(fd_key), timeout=8
+        )
+        if not r.ok: return {}
+        teams = r.json().get("teams", [])
+        mapping = {}
+        for t in teams:
+            mapping[t["name"].lower()] = t["id"]
+            mapping[t["shortName"].lower()] = t["id"]
+            if t.get("tla"):
+                mapping[t["tla"].lower()] = t["id"]
+        _team_id_cache[fd_code] = mapping
+        return mapping
+    except:
+        return {}
+
+def find_team_id(name, fd_code, fd_key):
+    mapping = load_team_ids(fd_code, fd_key)
+    nl = name.lower()
+    # Cerca match esatto
+    if nl in mapping:
+        return mapping[nl]
+    # Cerca match parziale
+    for k, v in mapping.items():
+        if nl in k or k in nl:
+            return v
+    return None
+
+def get_stats(name, fd_code, fd_key):
+    if not fd_code: return None
+    ck = f"{name}_{fd_code}"
+    if ck in _stats_cache: return _stats_cache[ck]
+    try:
+        team_id = find_team_id(name, fd_code, fd_key)
+        if not team_id: return None
+
+        # Prendi le ultime partite del team
+        r = requests.get(
+            f"https://api.football-data.org/v4/teams/{team_id}/matches?status=FINISHED&limit=10",
+            headers=get_fd_headers(fd_key), timeout=8
+        )
+        if not r.ok: return None
+        matches = r.json().get("matches", [])
+        if not matches: return None
+
+        goals_for_h = goals_for_a = goals_against_h = goals_against_a = 0
+        played_h = played_a = 0
+        form = ""
+
+        for m in matches:
+            home_team = m["homeTeam"]["name"]
+            score = m["score"]["fullTime"]
+            gh = score.get("home", 0) or 0
+            ga = score.get("away", 0) or 0
+            is_home = home_team.lower() == name.lower() or name.lower() in home_team.lower()
+
+            if is_home:
+                goals_for_h += gh
+                goals_against_h += ga
+                played_h += 1
+                if gh > ga: form += "W"
+                elif gh == ga: form += "D"
+                else: form += "L"
+            else:
+                goals_for_a += ga
+                goals_against_a += gh
+                played_a += 1
+                if ga > gh: form += "W"
+                elif ga == gh: form += "D"
+                else: form += "L"
+
         res = {
-            "avg_for_h":     (s["goals"]["for"]["total"]["home"]     or 0) / pl_h,
-            "avg_for_a":     (s["goals"]["for"]["total"]["away"]     or 0) / pl_a,
-            "avg_against_h": (s["goals"]["against"]["total"]["home"] or 0) / pl_h,
-            "avg_against_a": (s["goals"]["against"]["total"]["away"] or 0) / pl_a,
-            "form": s.get("form", ""),
+            "avg_for_h":     goals_for_h / played_h if played_h > 0 else 1.35,
+            "avg_for_a":     goals_for_a / played_a if played_a > 0 else 1.35,
+            "avg_against_h": goals_against_h / played_h if played_h > 0 else 1.35,
+            "avg_against_a": goals_against_a / played_a if played_a > 0 else 1.35,
+            "form": form[-10:],
         }
-        _cache[ck] = res
+        _stats_cache[ck] = res
         return res
-    except: return None
+    except:
+        return None
 
 def form_score(form):
     if not form: return 0.5
     return sum(3 if c=="W" else 1 if c=="D" else 0 for c in form[-5:]) / 15
 
-def analyze(event, league, fb_key):
+def analyze(event, league, fd_key):
     home, away = event["home_team"], event["away_team"]
     avg = 1.35
-    hs  = get_stats(home, league["fb_id"], fb_key) if fb_key else None
-    as_ = get_stats(away, league["fb_id"], fb_key) if fb_key else None
+    fd_code = league.get("fd_code")
+    hs  = get_stats(home, fd_code, fd_key) if fd_key and fd_code else None
+    as_ = get_stats(away, fd_code, fd_key) if fd_key and fd_code else None
 
     lh = hs["avg_for_h"] * (as_["avg_against_a"]/avg if as_ else 1) if hs else avg
     la = as_["avg_for_a"] * (hs["avg_against_h"]/avg if hs else 1) if as_ else avg
@@ -157,39 +221,29 @@ def best_combo(picks, target):
 def health():
     return jsonify({"status": "ok"})
 
-@app.route("/test-fb")
-def test_fb():
+@app.route("/test-fd")
+def test_fd():
     key = request.args.get("key", "")
     name = request.args.get("name", "Atalanta")
-    league = request.args.get("league", "135")
+    fd_code = request.args.get("league", "SA")
     if not key:
         return jsonify({"error": "Aggiungi ?key=LA_TUA_KEY"})
-    h = {"x-apisports-key": key}
-    # Cerca squadra
-    r1 = requests.get(f"https://v3.football.api-sports.io/teams?name={requests.utils.quote(name)}", headers=h, timeout=5)
-    teams = r1.json().get("response", [])
-    if not teams:
-        return jsonify({"error": f"Squadra '{name}' non trovata", "raw": r1.json()})
-    tid = teams[0]["team"]["id"]
-    found_name = teams[0]["team"]["name"]
-    # Prendi stats
-    r2 = requests.get(f"https://v3.football.api-sports.io/teams/statistics?team={tid}&league={league}&season=2024", headers=h, timeout=5)
-    stats = r2.json().get("response")
+    team_id = find_team_id(name, fd_code, key)
+    if not team_id:
+        ids = load_team_ids(fd_code, key)
+        return jsonify({"error": f"'{name}' non trovata", "available": list(ids.keys())[:20]})
+    stats = get_stats(name, fd_code, key)
     return jsonify({
         "searched": name,
-        "found_name": found_name,
-        "team_id": tid,
-        "has_stats": stats is not None,
-        "form": stats.get("form", "N/A") if stats else None,
-        "goals_for_home": stats["goals"]["for"]["total"]["home"] if stats else None,
-        "goals_against_away": stats["goals"]["against"]["total"]["away"] if stats else None,
+        "team_id": team_id,
+        "stats": stats,
     })
 
 @app.route("/generate", methods=["POST"])
 def generate():
     body     = request.get_json() or {}
     odds_key = (body.get("odds_api_key") or "").strip()
-    fb_key   = (body.get("football_api_key") or "").strip() or None
+    fd_key   = (body.get("football_api_key") or "").strip() or None
     target   = float(body.get("target", 3))
 
     if not odds_key:
@@ -225,13 +279,13 @@ def generate():
             if not today_events: continue
             leagues_found.append(lg["name"])
             for ev in today_events:
-                all_picks.extend(analyze(ev, lg, fb_key))
+                all_picks.extend(analyze(ev, lg, fd_key))
         except:
             continue
         if len(all_picks) >= 80: break
 
     if not all_picks:
-        return jsonify({"error": f"Nessuna partita trovata per oggi ({now_italy.strftime('%d/%m/%Y')}) non ancora iniziata."}), 404
+        return jsonify({"error": f"Nessuna partita trovata per oggi ({now_italy.strftime('%d/%m/%Y')})."}), 404
 
     seen, unique = set(), []
     for p in all_picks:
@@ -244,12 +298,15 @@ def generate():
     if not combo:
         return jsonify({"error": "Impossibile costruire una multipla valida."}), 404
 
+    stats_count = sum(1 for p in combo if p.get("home_form", 0.5) != 0.5 or p.get("away_form", 0.5) != 0.5)
+
     return jsonify({
         "total_odds": round(math.prod(p["odds"] for p in combo), 2),
         "picks": combo,
         "leagues_with_data": len(leagues_found),
         "matches_analyzed": len({p["match"] for p in unique}),
-        "football_api_used": fb_key is not None,
+        "football_api_used": fd_key is not None,
+        "picks_with_real_stats": stats_count,
     })
 
 if __name__ == "__main__":
