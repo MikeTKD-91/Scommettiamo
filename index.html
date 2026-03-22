@@ -339,8 +339,10 @@ async function gen(){
     document.getElementById('sL').textContent=d.leagues_with_data||0;
     document.getElementById('sM').textContent=d.matches_analyzed||0;
     document.getElementById('sV').textContent=d.value_bets_found||0;
+    // Mostra badge cache
+    const cacheNote = d.cache_used ? ' <span style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);color:#38bdf8;font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:99px;vertical-align:middle">⚡ Cached</span>' : '';
 
-    const dayTxt=d.day==='oggi'?'📅 Partite di Oggi':d.day==='domani'?'📅 Partite di Domani':'📅 Partite di Dopodomani';
+    const dayTxt=(d.day==='oggi'?'📅 Partite di Oggi':d.day==='domani'?'📅 Partite di Domani':'📅 Partite di Dopodomani')+cacheNote;
 
     let tabs='<div class="tabs">';
     let panels='';
