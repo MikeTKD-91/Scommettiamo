@@ -512,6 +512,9 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
 @app.route("/test-sofascore")
 def test_sofascore():
@@ -519,34 +522,56 @@ def test_sofascore():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json",
         "Referer": "https://www.sofascore.com/",
-        "Origin": "https://www.sofascore.com",
     }
     results = {}
 
-    # Test endpoints SofaScore API non ufficiale
-    test_urls = [
-        ("serie_a_standings", "https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/standings/total"),
-        ("serie_a_events",    "https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/events/last/0"),
-        ("team_stats_milan",  "https://api.sofascore.com/api/v1/team/2691/unique-tournament/23/season/63515/statistics/overall"),
-        ("epl_standings",     "https://api.sofascore.com/api/v1/unique-tournament/17/season/61627/standings/total"),
-    ]
+    # Prima prendi gli eventi recenti Serie A per trovare team IDs reali
+    r = requests.get("https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/events/last/0", headers=h, timeout=10)
+    events_data = r.json()
+    events = events_data.get("events", [])
 
-    for name, url in test_urls:
-        try:
-            r = requests.get(url, headers=h, timeout=10)
+    # Prendi il primo evento e i team IDs
+    if events:
+        ev = events[0]
+        home_id = ev.get("homeTeam", {}).get("id")
+        away_id = ev.get("awayTeam", {}).get("id")
+        home_name = ev.get("homeTeam", {}).get("name")
+        away_name = ev.get("awayTeam", {}).get("name")
+        results["sample_match"] = f"{home_name} ({home_id}) vs {away_name} ({away_id})"
+
+        # Test statistiche squadra con ID reale
+        for team_id, team_name in [(home_id, home_name), (away_id, away_name)]:
+            r2 = requests.get(
+                f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/23/season/63515/statistics/overall",
+                headers=h, timeout=10
+            )
             try:
-                data = r.json()
-                blocked = "error" in str(data).lower() or "blocked" in str(data).lower()
-                results[name] = {
-                    "status": r.status_code,
-                    "blocked": blocked,
-                    "keys": list(data.keys())[:10] if isinstance(data, dict) else None,
-                    "count": len(data) if isinstance(data, list) else None,
-                    "sample": str(data)[:400],
+                d = r2.json()
+                stats = d.get("statistics", {})
+                results[f"stats_{team_name}"] = {
+                    "status": r2.status_code,
+                    "xg": stats.get("expectedGoals"),
+                    "xga": stats.get("expectedGoalsAgainst"),
+                    "goals": stats.get("goals"),
+                    "goals_conceded": stats.get("goalsConceded"),
+                    "matches": stats.get("matches"),
+                    "all_keys": list(stats.keys())[:20],
                 }
-            except:
-                results[name] = {"status": r.status_code, "raw": r.text[:300]}
-        except Exception as e:
-            results[name] = {"error": str(e)}
+            except Exception as e:
+                results[f"stats_{team_name}"] = {"error": str(e), "raw": r2.text[:200]}
+
+    # Test partite di oggi
+    import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    r3 = requests.get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}", headers=h, timeout=10)
+    try:
+        d3 = r3.json()
+        events_today = d3.get("events", [])
+        results["today_matches"] = {
+            "count": len(events_today),
+            "sample": [f"{e.get('homeTeam',{}).get('name')} vs {e.get('awayTeam',{}).get('name')}" for e in events_today[:5]]
+        }
+    except Exception as e:
+        results["today_matches"] = {"error": str(e)}
 
     return jsonify(results)
