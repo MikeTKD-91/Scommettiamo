@@ -358,9 +358,16 @@ def generate():
                 url = (f"https://api.the-odds-api.com/v4/sports/{lg['key']}/odds/"
                        f"?apiKey={odds_key}&regions=eu&markets=totals&oddsFormat=decimal")
                 r = requests.get(url, timeout=8)
-                if not r.ok: continue
                 events = r.json()
-                if not isinstance(events, list) or not events: continue
+                # Controlla se i crediti API sono esauriti
+                if isinstance(events, dict):
+                    err = events.get("error_code","")
+                    if err == "OUT_OF_USAGE_CREDITS":
+                        return None, None, "credits_exceeded"
+                    if events.get("message","").lower().find("quota") > -1:
+                        return None, None, "credits_exceeded"
+                    continue
+                if not r.ok or not isinstance(events, list) or not events: continue
                 day_events = []
                 for ev in events:
                     ct = ev.get("commence_time", "")
@@ -376,7 +383,7 @@ def generate():
                     picks.extend(analyze_event(ev, lg, fd_key))
             except: continue
             if len(picks) >= 150: break
-        return picks, found
+        return picks, found, None
 
     # Cerca oggi, domani, dopodomani — una sola sessione di chiamate API
     all_picks, leagues_found, is_tomorrow, day_offset = [], [], False, 0
@@ -385,7 +392,10 @@ def generate():
         end   = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         if day_offset == 0:
             start = now_utc
-        all_picks, leagues_found = fetch_picks(start, end)
+        result = fetch_picks(start, end)
+        if result[2] == "credits_exceeded":
+            return jsonify({"error": "⚠️ Crediti Odds API esauriti! Vai su the-odds-api.com per rinnovare il piano o crea un nuovo account gratuito.", "error_code": "credits_exceeded"}), 429
+        all_picks, leagues_found = result[0], result[1]
         if all_picks:
             is_tomorrow = day_offset > 0
             break
