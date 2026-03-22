@@ -414,7 +414,7 @@ def generate():
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
 
     # Genera una multipla per ogni target — pick NON ripetuti tra multipla
-    TARGETS = [3, 5, 8, 10]
+    TARGETS = [3, 5, 8, 10, 100]
     multiples = []
     used_matches = set()  # traccia partite gia usate
 
