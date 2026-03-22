@@ -24,6 +24,22 @@ LEAGUES = [
     {"key": "soccer_uefa_europa_league",     "name": "Europa League",    "flag": "🏆",   "fd_code": "EL"},
 ]
 
+# Quota range per target — quote basse = più sicurezza
+TARGET_CONFIG = {
+    3:   {"min_odds": 1.25, "max_odds": 1.65, "min_picks": 2, "max_picks": 3},
+    5:   {"min_odds": 1.30, "max_odds": 1.75, "min_picks": 3, "max_picks": 4},
+    8:   {"min_odds": 1.35, "max_odds": 1.90, "min_picks": 3, "max_picks": 5},
+    10:  {"min_odds": 1.40, "max_odds": 2.00, "min_picks": 4, "max_picks": 5},
+    100: {"min_odds": 1.50, "max_odds": 3.50, "min_picks": 5, "max_picks": 8},
+}
+
+def get_target_config(target):
+    keys = sorted(TARGET_CONFIG.keys())
+    for k in keys:
+        if target <= k:
+            return TARGET_CONFIG[k]
+    return TARGET_CONFIG[100]
+
 _stats_cache = {}
 _team_id_cache = {}
 
@@ -60,7 +76,6 @@ def get_fd_headers(fd_key):
     return {"X-Auth-Token": fd_key}
 
 def load_team_ids(fd_code, fd_key):
-    """Carica tutti i team ID di una competizione in una sola chiamata"""
     if fd_code in _team_id_cache:
         return _team_id_cache[fd_code]
     try:
@@ -84,13 +99,9 @@ def load_team_ids(fd_code, fd_key):
 def find_team_id(name, fd_code, fd_key):
     mapping = load_team_ids(fd_code, fd_key)
     nl = name.lower()
-    # Cerca match esatto
-    if nl in mapping:
-        return mapping[nl]
-    # Cerca match parziale
+    if nl in mapping: return mapping[nl]
     for k, v in mapping.items():
-        if nl in k or k in nl:
-            return v
+        if nl in k or k in nl: return v
     return None
 
 def get_stats(name, fd_code, fd_key):
@@ -100,8 +111,6 @@ def get_stats(name, fd_code, fd_key):
     try:
         team_id = find_team_id(name, fd_code, fd_key)
         if not team_id: return None
-
-        # Prendi le ultime partite del team
         r = requests.get(
             f"https://api.football-data.org/v4/teams/{team_id}/matches?status=FINISHED&limit=10",
             headers=get_fd_headers(fd_key), timeout=8
@@ -110,8 +119,8 @@ def get_stats(name, fd_code, fd_key):
         matches = r.json().get("matches", [])
         if not matches: return None
 
-        goals_for_h = goals_for_a = goals_against_h = goals_against_a = 0
-        played_h = played_a = 0
+        gfh = gfa = gah = gaa = 0
+        ph = pa = 0
         form = ""
 
         for m in matches:
@@ -119,29 +128,22 @@ def get_stats(name, fd_code, fd_key):
             score = m["score"]["fullTime"]
             gh = score.get("home", 0) or 0
             ga = score.get("away", 0) or 0
-            is_home = home_team.lower() == name.lower() or name.lower() in home_team.lower()
+            is_home = name.lower() in home_team.lower() or home_team.lower() in name.lower()
 
             if is_home:
-                goals_for_h += gh
-                goals_against_h += ga
-                played_h += 1
-                if gh > ga: form += "W"
-                elif gh == ga: form += "D"
-                else: form += "L"
+                gfh += gh; gah += ga; ph += 1
+                form += "W" if gh > ga else "D" if gh == ga else "L"
             else:
-                goals_for_a += ga
-                goals_against_a += gh
-                played_a += 1
-                if ga > gh: form += "W"
-                elif ga == gh: form += "D"
-                else: form += "L"
+                gfa += ga; gaa += gh; pa += 1
+                form += "W" if ga > gh else "D" if ga == gh else "L"
 
         res = {
-            "avg_for_h":     goals_for_h / played_h if played_h > 0 else 1.35,
-            "avg_for_a":     goals_for_a / played_a if played_a > 0 else 1.35,
-            "avg_against_h": goals_against_h / played_h if played_h > 0 else 1.35,
-            "avg_against_a": goals_against_a / played_a if played_a > 0 else 1.35,
+            "avg_for_h":     gfh / ph if ph > 0 else 1.35,
+            "avg_for_a":     gfa / pa if pa > 0 else 1.35,
+            "avg_against_h": gah / ph if ph > 0 else 1.35,
+            "avg_against_a": gaa / pa if pa > 0 else 1.35,
             "form": form[-10:],
+            "has_real_stats": True,
         }
         _stats_cache[ck] = res
         return res
@@ -152,12 +154,19 @@ def form_score(form):
     if not form: return 0.5
     return sum(3 if c=="W" else 1 if c=="D" else 0 for c in form[-5:]) / 15
 
-def analyze(event, league, fd_key):
+def analyze(event, league, fd_key, cfg):
     home, away = event["home_team"], event["away_team"]
     avg = 1.35
     fd_code = league.get("fd_code")
     hs  = get_stats(home, fd_code, fd_key) if fd_key and fd_code else None
     as_ = get_stats(away, fd_code, fd_key) if fd_key and fd_code else None
+
+    # Se non abbiamo stats reali e fd_key è presente, skippa la partita
+    # (evita pick con 50/50 quando dovremmo avere dati)
+    has_real = (hs is not None and hs.get("has_real_stats")) or \
+               (as_ is not None and as_.get("has_real_stats"))
+    if fd_key and fd_code and not has_real:
+        return []
 
     lh = hs["avg_for_h"] * (as_["avg_against_a"]/avg if as_ else 1) if hs else avg
     la = as_["avg_for_a"] * (hs["avg_against_h"]/avg if hs else 1) if as_ else avg
@@ -169,7 +178,11 @@ def analyze(event, league, fd_key):
     af    = form_score(as_["form"] if as_ else "")
     exp_g = round(lh + la, 2)
 
+    min_odds = cfg["min_odds"]
+    max_odds = cfg["max_odds"]
     picks = []
+
+    # H2H — solo favorito netto
     for bk in event.get("bookmakers", []):
         markets = {m["key"]: m for m in bk.get("markets", [])}
         if "h2h" in markets:
@@ -182,10 +195,17 @@ def analyze(event, league, fd_key):
                 else:
                     n, odds, prob = f"Vince {away}", ao, aw
                 edge = prob - 1/odds
-                if 1.15 <= odds <= 4.5:
-                    picks.append({"name": n, "odds": round(odds,2), "prob": round(prob,3), "edge": round(edge,3), "market": "h2h", "probs": pr, "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2)})
+                # Solo VALUE BET con quote nel range target
+                if min_odds <= odds <= max_odds and edge > 0.02:
+                    picks.append({
+                        "name": n, "odds": round(odds,2), "prob": round(prob,3),
+                        "edge": round(edge,3), "market": "h2h", "probs": pr,
+                        "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2),
+                        "has_real_stats": has_real,
+                    })
             break
 
+    # Totals
     for bk in event.get("bookmakers", []):
         markets = {m["key"]: m for m in bk.get("markets", [])}
         if "totals" in markets:
@@ -195,49 +215,74 @@ def analyze(event, league, fd_key):
                 is_over = o["name"] == "Over"
                 prob = pr["over25"] if is_over else pr["under25"]
                 edge = prob - 1/odds
-                if 1.2 <= odds <= 5.0:
-                    picks.append({"name": f"{o['name']} 2.5", "odds": round(odds,2), "prob": round(prob,3), "edge": round(edge,3), "market": "totals", "probs": pr, "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2)})
+                # Solo VALUE BET con quote nel range target
+                if min_odds <= odds <= max_odds and edge > 0.02:
+                    picks.append({
+                        "name": f"{o['name']} 2.5", "odds": round(odds,2), "prob": round(prob,3),
+                        "edge": round(edge,3), "market": "totals", "probs": pr,
+                        "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2),
+                        "has_real_stats": has_real,
+                    })
             break
 
-    return [{**p, "match": f"{home} vs {away}", "league": f"{league['flag']} {league['name']}", "commence_time": event.get("commence_time"), "score": p["edge"]*40 + (hf+af)*10 + p["prob"]*20} for p in picks]
+    return [{
+        **p,
+        "match": f"{home} vs {away}",
+        "league": f"{league['flag']} {league['name']}",
+        "commence_time": event.get("commence_time"),
+        # Score: priorità a edge alto, probabilità alta, stats reali
+        "score": p["edge"]*50 + p["prob"]*30 + (hf+af)*10 + (10 if has_real else 0),
+    } for p in picks]
 
-def best_combo(picks, target):
-    top = sorted(picks, key=lambda p: p["score"], reverse=True)[:20]
-    best, best_diff = [], 9999
-    max_sz = 7 if target >= 50 else 5 if target >= 10 else 4 if target >= 5 else 3
-    for sz in range(2, max_sz+1):
+def best_combo(picks, target, cfg):
+    """
+    Trova la combinazione migliore:
+    1. Solo VALUE BET (già filtrati)
+    2. Mercati diversi (no 3 Over insieme)
+    3. Numero pick nel range del target
+    4. Quota totale più vicina al target
+    5. Probabilità combinata più alta possibile
+    """
+    # Ordina per score
+    top = sorted(picks, key=lambda p: p["score"], reverse=True)[:25]
+    best, best_score = [], -1
+
+    min_sz = cfg["min_picks"]
+    max_sz = cfg["max_picks"]
+
+    for sz in range(min_sz, max_sz+1):
         if len(top) < sz: continue
         for combo in itertools.combinations(top, sz):
+            # No partite duplicate
             if len({p["match"] for p in combo}) != sz: continue
+
+            # Diversità mercati — max 2 dello stesso mercato
+            market_counts = {}
+            for p in combo:
+                market_counts[p["market"]] = market_counts.get(p["market"], 0) + 1
+            if any(v > 2 for v in market_counts.values()): continue
+
             tot = math.prod(p["odds"] for p in combo)
-            diff = abs(tot - target)
-            if diff < best_diff:
-                best_diff = diff
+
+            # Deve essere ragionevolmente vicina al target (±40%)
+            if tot < target * 0.6 or tot > target * 1.4: continue
+
+            # Probabilità combinata
+            combo_prob = math.prod(p["prob"] for p in combo)
+
+            # Score combinato: prob alta + vicino al target + edge totale
+            diff_penalty = abs(tot - target) / target
+            combo_score = combo_prob * 60 + sum(p["edge"] for p in combo) * 20 - diff_penalty * 20
+
+            if combo_score > best_score:
+                best_score = combo_score
                 best = list(combo)
-        if best_diff < target * 0.1: break
+
     return best
 
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
-
-@app.route("/test-fd")
-def test_fd():
-    key = request.args.get("key", "")
-    name = request.args.get("name", "Atalanta")
-    fd_code = request.args.get("league", "SA")
-    if not key:
-        return jsonify({"error": "Aggiungi ?key=LA_TUA_KEY"})
-    team_id = find_team_id(name, fd_code, key)
-    if not team_id:
-        ids = load_team_ids(fd_code, key)
-        return jsonify({"error": f"'{name}' non trovata", "available": list(ids.keys())[:20]})
-    stats = get_stats(name, fd_code, key)
-    return jsonify({
-        "searched": name,
-        "team_id": team_id,
-        "stats": stats,
-    })
 
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -248,6 +293,8 @@ def generate():
 
     if not odds_key:
         return jsonify({"error": "Odds API key mancante"}), 400
+
+    cfg = get_target_config(target)
 
     now_utc = datetime.now(timezone.utc)
     italy_offset = 2 if now_utc.month in [4,5,6,7,8,9,10] else 1
@@ -279,13 +326,14 @@ def generate():
             if not today_events: continue
             leagues_found.append(lg["name"])
             for ev in today_events:
-                all_picks.extend(analyze(ev, lg, fd_key))
+                all_picks.extend(analyze(ev, lg, fd_key, cfg))
         except:
             continue
         if len(all_picks) >= 80: break
 
     if not all_picks:
-        return jsonify({"error": f"Nessuna partita trovata per oggi ({now_italy.strftime('%d/%m/%Y')})."}), 404
+        # Fallback senza filtro VALUE se non troviamo nulla
+        return jsonify({"error": f"Nessun VALUE BET trovato oggi con quota tra {cfg['min_odds']} e {cfg['max_odds']}. Riprova domani o cambia il target."}), 404
 
     seen, unique = set(), []
     for p in all_picks:
@@ -294,19 +342,26 @@ def generate():
             seen.add(k)
             unique.append(p)
 
-    combo = best_combo(unique, target)
-    if not combo:
-        return jsonify({"error": "Impossibile costruire una multipla valida."}), 404
+    combo = best_combo(unique, target, cfg)
 
-    stats_count = sum(1 for p in combo if p.get("home_form", 0.5) != 0.5 or p.get("away_form", 0.5) != 0.5)
+    # Fallback: se non trova combo nel range, allarga la ricerca
+    if not combo:
+        combo = best_combo(unique, target, {**cfg, "min_picks": 2, "max_picks": cfg["max_picks"]+1})
+
+    if not combo:
+        return jsonify({"error": "Impossibile costruire una multipla valida. Pochi VALUE BET disponibili oggi."}), 404
+
+    total_odds = round(math.prod(p["odds"] for p in combo), 2)
+    combo_prob = round(math.prod(p["prob"] for p in combo) * 100, 1)
 
     return jsonify({
-        "total_odds": round(math.prod(p["odds"] for p in combo), 2),
+        "total_odds": total_odds,
+        "combo_probability": combo_prob,
         "picks": combo,
         "leagues_with_data": len(leagues_found),
         "matches_analyzed": len({p["match"] for p in unique}),
+        "value_bets_found": len(unique),
         "football_api_used": fd_key is not None,
-        "picks_with_real_stats": stats_count,
     })
 
 if __name__ == "__main__":
