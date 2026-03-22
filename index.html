@@ -202,7 +202,13 @@ async function gen(){
       body:JSON.stringify({odds_api_key:oddsKey,football_api_key:fbKey||null})
     });
     const data=await r.json();
-    if(data.error){showErr(data.error);btn.disabled=false;btn.innerHTML='⚽ Genera Tutte le Multipla';return}
+    if(data.error){
+      let msg = data.error;
+      if(msg.includes('quota') || msg.includes('credits') || msg.includes('Usage') || msg.includes('OUT_OF')){
+        msg = '🚨 Crediti Odds API esauriti! Vai su the-odds-api.com per ricaricare o crea un nuovo account gratuito.';
+      }
+      showErr(msg);btn.disabled=false;btn.innerHTML='⚽ Genera Tutte le Multipla';return;
+    }
 
     // Stats bar
     document.getElementById('sbar').style.display='flex';
@@ -219,7 +225,11 @@ async function gen(){
     document.getElementById('results').innerHTML = html;
 
   }catch(e){
-    showErr('Errore connessione Railway: '+e.message);
+    let msg = e.message;
+    if(msg.includes('quota') || msg.includes('credits') || msg.includes('OUT_OF')){
+      msg = '🚨 Crediti Odds API esauriti! Vai su the-odds-api.com per ricaricare.';
+    }
+    showErr('Errore connessione Railway: '+msg);
   }
   btn.disabled=false;btn.innerHTML='⚽ Genera Tutte le Multipla';
 }
