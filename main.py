@@ -507,26 +507,37 @@ def generate():
 
 @app.route("/test-understat")
 def test_understat():
-    import re, json
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://google.com"}
-    try:
-        r = requests.get("https://understat.com/league/Serie_A", headers=headers, timeout=12)
-        html = r.text
-        # Estrai tutti i blocchi JSON.parse dalla pagina
-        matches = re.findall(r"JSON\.parse\('([^']+)'\)", html)
-        parsed = []
-        for m in matches:
+    import json
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://understat.com/",
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json, text/javascript, */*",
+    }
+    results = {}
+    # Understat ha endpoint AJAX interni
+    test_endpoints = [
+        ("teams_stats",    "https://understat.com/main/getTeamsStats/league/EPL/season/2024"),
+        ("league_players", "https://understat.com/main/getLeaguePlayersStats/league/EPL/season/2024"),
+        ("team_stats_sa",  "https://understat.com/main/getTeamsStats/league/Serie_A/season/2024"),
+        ("fixtures",       "https://understat.com/main/getFixtures/league/EPL/season/2024"),
+    ]
+    for name, url in test_endpoints:
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
             try:
-                decoded = bytes(m, "utf-8").decode("unicode_escape")
-                data = json.loads(decoded)
-                if isinstance(data, list) and len(data) > 0:
-                    parsed.append({"type": type(data[0]).__name__, "count": len(data), "sample": str(data[0])[:300]})
-                elif isinstance(data, dict):
-                    parsed.append({"type": "dict", "keys": list(data.keys())[:10], "sample": str(data)[:300]})
-            except: pass
-        return jsonify({"status": r.status_code, "json_blocks_found": len(matches), "parsed": parsed})
-    except Exception as e:
-        return jsonify({"error": str(e)})
+                data = r.json()
+                results[name] = {
+                    "status": r.status_code,
+                    "type": type(data).__name__,
+                    "count": len(data) if isinstance(data, (list,dict)) else None,
+                    "sample": str(data)[:400] if data else None,
+                }
+            except:
+                results[name] = {"status": r.status_code, "raw": r.text[:300]}
+        except Exception as e:
+            results[name] = {"error": str(e)}
+    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
