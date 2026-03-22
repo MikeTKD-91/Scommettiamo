@@ -509,29 +509,5 @@ def generate():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-
-@app.route("/test-understat")
-def test_understat():
-    h = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://google.com"}
-    r = requests.get("https://understat.com/league/Serie_A/2024", headers=h, timeout=12)
-    html = r.text
-
-    # Trova tutti i tag script e mostra il contenuto raw
-    import re as rx
-    scripts = rx.findall(r'<script[^>]*>([\s\S]*?)</script>', html)
-
-    output = []
-    for i, s in enumerate(scripts):
-        s = s.strip()
-        if len(s) > 20:
-            output.append({
-                "index": i,
-                "length": len(s),
-                "preview": s[:500]
-            })
-
-    return jsonify({
-        "status": r.status_code,
-        "total_scripts": len(scripts),
-        "scripts_with_content": output
-    })
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
