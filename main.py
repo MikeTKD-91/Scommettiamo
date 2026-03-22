@@ -511,3 +511,42 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+
+@app.route("/test-sofascore")
+def test_sofascore():
+    h = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.sofascore.com/",
+        "Origin": "https://www.sofascore.com",
+    }
+    results = {}
+
+    # Test endpoints SofaScore API non ufficiale
+    test_urls = [
+        ("serie_a_standings", "https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/standings/total"),
+        ("serie_a_events",    "https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/events/last/0"),
+        ("team_stats_milan",  "https://api.sofascore.com/api/v1/team/2691/unique-tournament/23/season/63515/statistics/overall"),
+        ("epl_standings",     "https://api.sofascore.com/api/v1/unique-tournament/17/season/61627/standings/total"),
+    ]
+
+    for name, url in test_urls:
+        try:
+            r = requests.get(url, headers=h, timeout=10)
+            try:
+                data = r.json()
+                blocked = "error" in str(data).lower() or "blocked" in str(data).lower()
+                results[name] = {
+                    "status": r.status_code,
+                    "blocked": blocked,
+                    "keys": list(data.keys())[:10] if isinstance(data, dict) else None,
+                    "count": len(data) if isinstance(data, list) else None,
+                    "sample": str(data)[:400],
+                }
+            except:
+                results[name] = {"status": r.status_code, "raw": r.text[:300]}
+        except Exception as e:
+            results[name] = {"error": str(e)}
+
+    return jsonify(results)
