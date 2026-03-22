@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests, math, itertools, os
-from datetime import datetime, timezone, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -26,6 +25,7 @@ LEAGUES = [
 
 _cache = {}
 
+# ── Poisson ────────────────────────────────────────────────────────────────────
 def pmf(lam, k):
     if lam <= 0: return 0
     return math.exp(k * math.log(lam) - lam - sum(math.log(i) for i in range(1, k+1)))
@@ -55,6 +55,7 @@ def win_probs(lh, la, hf, af):
     tot = hw + aw + dr
     return hw/tot, aw/tot, dr/tot
 
+# ── API-Football ───────────────────────────────────────────────────────────────
 def get_stats(name, league_id, fb_key):
     ck = f"{name}_{league_id}"
     if ck in _cache: return _cache[ck]
@@ -69,10 +70,10 @@ def get_stats(name, league_id, fb_key):
         pl_h = s["fixtures"]["played"]["home"]  or 1
         pl_a = s["fixtures"]["played"]["away"]  or 1
         res = {
-            "avg_for_h":     (s["goals"]["for"]["total"]["home"]     or 0) / pl_h,
-            "avg_for_a":     (s["goals"]["for"]["total"]["away"]     or 0) / pl_a,
-            "avg_against_h": (s["goals"]["against"]["total"]["home"] or 0) / pl_h,
-            "avg_against_a": (s["goals"]["against"]["total"]["away"] or 0) / pl_a,
+            "avg_for_h":      (s["goals"]["for"]["total"]["home"]     or 0) / pl_h,
+            "avg_for_a":      (s["goals"]["for"]["total"]["away"]     or 0) / pl_a,
+            "avg_against_h":  (s["goals"]["against"]["total"]["home"] or 0) / pl_h,
+            "avg_against_a":  (s["goals"]["against"]["total"]["away"] or 0) / pl_a,
             "form": s.get("form", ""),
         }
         _cache[ck] = res
@@ -83,10 +84,11 @@ def form_score(form):
     if not form: return 0.5
     return sum(3 if c=="W" else 1 if c=="D" else 0 for c in form[-5:]) / 15
 
+# ── Analyze ────────────────────────────────────────────────────────────────────
 def analyze(event, league, fb_key):
     home, away = event["home_team"], event["away_team"]
     avg = 1.35
-    hs  = get_stats(home, league["fb_id"], fb_key) if fb_key else None
+    hs = get_stats(home, league["fb_id"], fb_key) if fb_key else None
     as_ = get_stats(away, league["fb_id"], fb_key) if fb_key else None
 
     lh = hs["avg_for_h"] * (as_["avg_against_a"]/avg if as_ else 1) if hs else avg
@@ -94,14 +96,15 @@ def analyze(event, league, fb_key):
     lh = max(0.3, min(4.0, lh))
     la = max(0.3, min(4.0, la))
 
-    pr    = poisson_probs(lh, la)
-    hf    = form_score(hs["form"] if hs else "")
-    af    = form_score(as_["form"] if as_ else "")
+    pr   = poisson_probs(lh, la)
+    hf   = form_score(hs["form"] if hs else "")
+    af   = form_score(as_["form"] if as_ else "")
     exp_g = round(lh + la, 2)
 
     picks = []
     for bk in event.get("bookmakers", []):
         markets = {m["key"]: m for m in bk.get("markets", [])}
+
         if "h2h" in markets:
             outs = {o["name"]: float(o["price"]) for o in markets["h2h"]["outcomes"]}
             ho, ao = outs.get(home), outs.get(away)
@@ -114,7 +117,7 @@ def analyze(event, league, fb_key):
                 edge = prob - 1/odds
                 if 1.15 <= odds <= 4.5:
                     picks.append({"name": n, "odds": round(odds,2), "prob": round(prob,3), "edge": round(edge,3), "market": "h2h", "probs": pr, "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2)})
-            break
+            break  # one bookmaker for h2h
 
     for bk in event.get("bookmakers", []):
         markets = {m["key"]: m for m in bk.get("markets", [])}
@@ -131,6 +134,7 @@ def analyze(event, league, fb_key):
 
     return [{**p, "match": f"{home} vs {away}", "league": f"{league['flag']} {league['name']}", "commence_time": event.get("commence_time"), "score": p["edge"]*40 + (hf+af)*10 + p["prob"]*20} for p in picks]
 
+# ── Combo ──────────────────────────────────────────────────────────────────────
 def best_combo(picks, target):
     top = sorted(picks, key=lambda p: p["score"], reverse=True)[:20]
     best, best_diff = [], 9999
@@ -147,6 +151,7 @@ def best_combo(picks, target):
         if best_diff < target * 0.1: break
     return best
 
+# ── Routes ─────────────────────────────────────────────────────────────────────
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
@@ -161,16 +166,6 @@ def generate():
     if not odds_key:
         return jsonify({"error": "Odds API key mancante"}), 400
 
-    # Orario italiano (UTC+1 in marzo, UTC+2 in estate)
-    now_utc = datetime.now(timezone.utc)
-    italy_offset = 2 if now_utc.month in [4,5,6,7,8,9,10] else 1
-    italy_tz = timezone(timedelta(hours=italy_offset))
-    now_italy = now_utc.astimezone(italy_tz)
-
-    # Finestra: da adesso fino a mezzanotte italiana
-    today_end_italy = now_italy.replace(hour=23, minute=59, second=59)
-    today_end_utc = today_end_italy.astimezone(timezone.utc)
-
     all_picks, leagues_found = [], []
 
     for lg in LEAGUES:
@@ -180,31 +175,15 @@ def generate():
             if not r.ok: continue
             events = r.json()
             if not isinstance(events, list) or not events: continue
-
-            today_events = []
-            for ev in events:
-                ct = ev.get("commence_time", "")
-                if not ct: continue
-                try:
-                    t = datetime.fromisoformat(ct.replace("Z", "+00:00"))
-                    # Solo partite non ancora iniziate e entro mezzanotte italiana
-                    if now_utc <= t <= today_end_utc:
-                        today_events.append(ev)
-                except:
-                    continue
-
-            if not today_events: continue
             leagues_found.append(lg["name"])
-            for ev in today_events:
+            for ev in events:
                 all_picks.extend(analyze(ev, lg, fb_key))
         except:
             continue
         if len(all_picks) >= 80: break
 
     if not all_picks:
-        return jsonify({
-            "error": f"Nessuna partita trovata per oggi ({now_italy.strftime('%d/%m/%Y')}) non ancora iniziata. Riprova domani mattina!"
-        }), 404
+        return jsonify({"error": "Nessuna quota trovata. Controlla la Odds API key."}), 404
 
     seen, unique = set(), []
     for p in all_picks:
@@ -215,7 +194,7 @@ def generate():
 
     combo = best_combo(unique, target)
     if not combo:
-        return jsonify({"error": "Impossibile costruire una multipla valida con le partite di oggi."}), 404
+        return jsonify({"error": "Impossibile costruire una multipla valida."}), 404
 
     return jsonify({
         "total_odds": round(math.prod(p["odds"] for p in combo), 2),
