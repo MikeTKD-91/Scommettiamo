@@ -505,5 +505,20 @@ def generate():
         "cache_used": cache_used,
     })
 
+@app.route("/test-fbref")
+def test_fbref():
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", "Referer": "https://google.com"}
+    out = {}
+    for name, url in [("fbref_serie_a", "https://fbref.com/en/comps/11/Serie-A-Stats"), ("understat_serie_a", "https://understat.com/league/Serie_A")]:
+        try:
+            r = requests.get(url, headers=headers, timeout=12)
+            html = r.text
+            blocked = r.status_code in [403,503] or "cloudflare" in html.lower() or "checking your browser" in html.lower()
+            has_json = "JSON.parse" in html or "json" in html.lower()
+            out[name] = {"status": r.status_code, "blocked": blocked, "length": len(html), "has_json_data": has_json, "preview": html[200:600]}
+        except Exception as e:
+            out[name] = {"error": str(e)}
+    return jsonify(out)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
