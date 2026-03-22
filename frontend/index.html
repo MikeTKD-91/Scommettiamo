@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salvadanaio Quota 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--g:#22c55e;--gd:#16a34a;--gb:#0e4f2a;--bg:#080d14;--c1:#0f1923;--c2:#0a1219;--br:#1e2d3d;--tx:#f1f5f9;--mu:#64748b;--m2:#475569;--ye:#facc15;--re:#fca5a5;--rb:#1a0a0a;--rv:#7f1d1d;--or:#fb923c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.page{display:flex;justify-content:center;padding:36px 16px 80px}
+.wrap{width:100%;max-width:600px}
+.hdr{text-align:center;margin-bottom:28px}
+.bdg{display:inline-block;background:var(--gb);color:var(--g);font-size:9px;font-weight:700;letter-spacing:2px;padding:4px 14px;border-radius:20px;margin-bottom:14px}
+.ttl{font-family:'Syne',sans-serif;font-size:2.6rem;font-weight:800;line-height:1.05;margin-bottom:8px}
+.ttl span{color:var(--g)}
+.sub{color:var(--mu);font-size:.88rem}
+.card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px 22px;margin-bottom:12px;animation:up .3s ease}
+.clbl{color:var(--m2);font-size:.7rem;font-weight:700;letter-spacing:1.5px;margin-bottom:12px}
+label{display:block;color:#94a3b8;font-size:.78rem;font-weight:600;margin-bottom:5px}
+.req{color:#ef4444}.opt{color:var(--m2);font-weight:400}
+.irow{display:flex;gap:8px;margin-bottom:5px}
+input[type=password],input[type=text]{flex:1;background:var(--c2);border:1px solid var(--br);border-radius:10px;padding:10px 13px;color:var(--tx);font-size:.83rem;outline:none;font-family:monospace;transition:border-color .2s}
+input:focus{border-color:var(--g);box-shadow:0 0 0 3px rgba(34,197,94,.12)}
+.xbtn{background:var(--br);border:none;color:var(--mu);border-radius:10px;padding:0 13px;cursor:pointer;font-size:13px}
+.stag{color:var(--g);font-size:.71rem;font-weight:600;display:inline-block;margin-bottom:8px}
+.hint{color:var(--m2);font-size:.73rem;line-height:1.5;margin-top:8px}
+.hint a{color:var(--g);text-decoration:none}
+.qgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.qbtn{background:var(--c2);border:1px solid var(--br);border-radius:10px;padding:9px 4px;color:var(--mu);font-size:.75rem;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
+.qbtn:hover{border-color:var(--g);color:var(--g)}
+.qbtn.on{background:var(--gb);border-color:var(--g);color:var(--g)}
+.qv{font-family:'Syne',sans-serif;font-size:.95rem;display:block}
+.qr{font-size:.62rem;display:block;margin-top:1px;opacity:.7}
+.gbtn{width:100%;background:linear-gradient(135deg,var(--gd),var(--g));border:none;border-radius:14px;padding:15px;color:#fff;font-weight:700;font-size:.97rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:12px;font-family:'DM Sans',sans-serif;transition:opacity .2s,transform .1s}
+.gbtn:hover:not(:disabled){opacity:.92;transform:translateY(-1px)}
+.gbtn:disabled{opacity:.6;cursor:not-allowed}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+.prog{background:var(--c1);border:1px solid var(--br);border-radius:12px;padding:14px 18px;margin-bottom:12px}
+.ptxt{color:var(--mu);font-size:.83rem;margin-bottom:8px}
+.pbg{background:var(--br);border-radius:99px;height:4px}
+.pbar{background:var(--g);border-radius:99px;height:4px;transition:width .3s}
+.err{background:var(--rb);border:1px solid var(--rv);border-radius:12px;padding:13px 16px;color:var(--re);font-size:.86rem;margin-bottom:12px}
+.sbar{display:flex;background:var(--c1);border:1px solid var(--br);border-radius:12px;padding:13px 18px;margin-bottom:12px;justify-content:space-around;align-items:center}
+.st{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sn{color:var(--g);font-family:'Syne',sans-serif;font-weight:700;font-size:1.25rem}
+.sl{color:var(--m2);font-size:.68rem;font-weight:600}
+.sdiv{width:1px;height:28px;background:var(--br)}
+.res{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:22px;animation:up .4s ease}
+.rh{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.rt{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
+.rtg{background:var(--gb);color:var(--g);font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px}
+.pick{background:var(--c2);border-radius:12px;padding:13px 14px;margin-bottom:9px;border-left:3px solid var(--g)}
+.pt{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.pl{color:var(--g);font-size:.7rem;font-weight:600}
+.ptime{color:var(--m2);font-size:.68rem}
+.pm{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.pn{width:26px;height:26px;border-radius:7px;background:var(--gb);color:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;font-family:'Syne',sans-serif}
+.pi{flex:1}
+.pmt{color:var(--tx);font-weight:600;font-size:.88rem;margin-bottom:2px}
+.ptp{color:var(--mu);font-size:.73rem}
+.po{color:var(--ye);font-weight:700;font-size:1rem;flex-shrink:0;font-family:'Syne',sans-serif}
+.vbdg{display:inline-block;background:rgba(34,197,94,.13);border:1px solid var(--g);color:var(--g);font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:5px;margin-left:5px}
+.nvbdg{display:inline-block;background:rgba(251,146,60,.1);border:1px solid var(--or);color:var(--or);font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:5px;margin-left:5px}
+.prow{display:flex;align-items:center;gap:7px;margin-top:5px}
+.plbl{font-size:.7rem;color:var(--mu);width:66px;flex-shrink:0}
+.pbgb{flex:1;background:var(--br);border-radius:99px;height:5px}
+.pbfill{background:var(--g);border-radius:99px;height:5px;transition:width .6s}
+.pval{font-size:.7rem;color:var(--g);font-weight:700;width:34px;text-align:right;flex-shrink:0}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;border-top:1px solid var(--br);padding-top:9px;margin-top:9px}
+.ms{text-align:center}
+.mv{font-size:.83rem;font-weight:700;color:var(--tx)}
+.mv.ok{color:var(--g)}.mv.warn{color:var(--ye)}
+.mlbl{font-size:.62rem;color:var(--m2);margin-top:1px}
+.tot{border-top:1px solid var(--br);margin-top:14px;padding-top:14px;display:flex;justify-content:space-between;align-items:center}
+.tlbl{color:var(--mu);font-size:.73rem;font-weight:700;letter-spacing:1px}
+.tsub{color:var(--m2);font-size:.67rem;margin-top:3px}
+.tval{font-family:'Syne',sans-serif;color:var(--g);font-weight:800;font-size:1.9rem}
+.riskbar{display:flex;gap:5px;margin-top:11px}
+.rd{flex:1;height:4px;border-radius:99px;background:var(--br)}
+.rd.rl{background:var(--g)}.rd.rm{background:var(--ye)}.rd.rh{background:var(--or)}.rd.re{background:#ef4444}
+.rlbl{font-size:.68rem;color:var(--m2);margin-top:5px;text-align:right}
+.backend-url{background:var(--c2);border:1px solid var(--br);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:.78rem;font-family:monospace;width:100%;outline:none;margin-top:5px}
+</style>
+</head>
+<body>
+<div class="page"><div class="wrap">
+
+<div class="hdr">
+  <div class="bdg">POISSON · xG · FORMA · VALUE BET · 15 CAMPIONATI</div>
+  <h1 class="ttl">Salvadanaio<br><span>Quota 3</span></h1>
+  <p class="sub">Analisi statistica professionale del calcio europeo</p>
+</div>
+
+<!-- BACKEND URL -->
+<div class="card">
+  <p class="clbl">⚙️ BACKEND URL (Railway)</p>
+  <label>URL del tuo server Railway</label>
+  <input type="text" id="backendUrl" class="backend-url" placeholder="https://tuoapp.railway.app">
+  <span class="stag" id="urlSaved" style="display:none">✓ Salvato</span>
+  <p class="hint">Dopo aver fatto il deploy su Railway, incolla qui l'URL. <a href="https://railway.app" target="_blank">railway.app →</a></p>
+</div>
+
+<!-- API KEYS -->
+<div class="card">
+  <p class="clbl">🔑 API KEYS</p>
+  <label>The Odds API <span class="req">*</span></label>
+  <div class="irow">
+    <input type="password" id="oddsKey" placeholder="Quote in tempo reale — obbligatoria">
+    <button class="xbtn" onclick="clr('oddsKey','odSaved')">✕</button>
+  </div>
+  <span class="stag" id="odSaved" style="display:none">✓ Salvata</span>
+
+  <label style="margin-top:12px">API-Football <span class="opt">(statistiche avanzate)</span></label>
+  <div class="irow">
+    <input type="password" id="fbKey" placeholder="xG · forma · casa/trasferta — opzionale">
+    <button class="xbtn" onclick="clr('fbKey','fbSaved')">✕</button>
+  </div>
+  <span class="stag" id="fbSaved" style="display:none">✓ Salvata</span>
+  <p class="hint">Le chiavi restano solo nel tuo browser. <a href="https://the-odds-api.com" target="_blank">Odds API</a> · <a href="https://www.api-football.com" target="_blank">API-Football</a></p>
+</div>
+
+<!-- QUOTA TARGET -->
+<div class="card">
+  <p class="clbl">🎯 QUOTA TARGET</p>
+  <div class="qgrid">
+    <div class="qbtn on" data-q="3" onclick="selQ(this)"><span class="qv">x3</span><span class="qr">Basso</span></div>
+    <div class="qbtn" data-q="5" onclick="selQ(this)"><span class="qv">x5</span><span class="qr">Medio</span></div>
+    <div class="qbtn" data-q="8" onclick="selQ(this)"><span class="qv">x8</span><span class="qr">Alto</span></div>
+    <div class="qbtn" data-q="10" onclick="selQ(this)"><span class="qv">x10</span><span class="qr">Molto</span></div>
+    <div class="qbtn" data-q="100" onclick="selQ(this)"><span class="qv">x100</span><span class="qr">Estremo</span></div>
+  </div>
+</div>
+
+<button class="gbtn" id="gbtn" onclick="gen()">⚽ Genera Multipla del Giorno</button>
+<div class="prog" id="prog" style="display:none"><div class="ptxt" id="ptxt">...</div><div class="pbg"><div class="pbar" id="pbar" style="width:0%"></div></div></div>
+<div class="err" id="errBox" style="display:none"></div>
+<div class="sbar" id="sbar" style="display:none">
+  <div class="st"><span class="sn" id="sL">0</span><span class="sl">campionati</span></div>
+  <div class="sdiv"></div>
+  <div class="st"><span class="sn" id="sM">0</span><span class="sl">partite</span></div>
+  <div class="sdiv"></div>
+  <div class="st"><span class="sn" id="sP">0</span><span class="sl">selezionati</span></div>
+</div>
+<div id="results"></div>
+
+</div></div>
+<script>
+let tQ=3;
+
+function selQ(el){document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');tQ=parseFloat(el.dataset.q)}
+function clr(i,s){document.getElementById(i).value='';document.getElementById(s).style.display='none';localStorage.removeItem(i)}
+function save(){
+  const bu=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  const ok=document.getElementById('oddsKey').value.trim();
+  const fk=document.getElementById('fbKey').value.trim();
+  if(bu){localStorage.setItem('backendUrl',bu);document.getElementById('urlSaved').style.display='inline-block'}
+  if(ok){localStorage.setItem('oddsKey',ok);document.getElementById('odSaved').style.display='inline-block'}
+  if(fk){localStorage.setItem('fbKey',fk);document.getElementById('fbSaved').style.display='inline-block'}
+}
+window.onload=()=>{
+  const bu=localStorage.getItem('backendUrl');
+  const ok=localStorage.getItem('oddsKey');
+  const fk=localStorage.getItem('fbKey');
+  if(bu){document.getElementById('backendUrl').value=bu;document.getElementById('urlSaved').style.display='inline-block'}
+  if(ok){document.getElementById('oddsKey').value=ok;document.getElementById('odSaved').style.display='inline-block'}
+  if(fk){document.getElementById('fbKey').value=fk;document.getElementById('fbSaved').style.display='inline-block'}
+}
+function prog(t,p){document.getElementById('prog').style.display='block';document.getElementById('ptxt').textContent=t;document.getElementById('pbar').style.width=p+'%'}
+function showErr(m){const e=document.getElementById('errBox');e.style.display='block';e.textContent='⚠️ '+m}
+function hideErr(){document.getElementById('errBox').style.display='none'}
+function fmtDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+function riskInfo(q){
+  if(q<=3)return{lbl:'Rischio Basso',dots:['rl','','','']};
+  if(q<=8)return{lbl:'Rischio Medio',dots:['rl','rm','','']};
+  if(q<=10)return{lbl:'Rischio Alto',dots:['rl','rm','rh','']};
+  return{lbl:'Rischio Estremo',dots:['rl','rm','rh','re']};
+}
+
+function render(data){
+  const ri=riskInfo(tQ);
+  let html=`<div class="res"><div class="rh"><span class="rt">🔥 Multipla del Giorno</span><span class="rtg">Target x${tQ}</span></div>`;
+  data.picks.forEach((p,i)=>{
+    const pct=Math.round(p.prob*100);
+    const o25=Math.round((p.probs?.over25||0)*100);
+    const gg=Math.round((p.probs?.gg||0)*100);
+    const isVal=p.edge>0.02;
+    const eg=p.exp_g||'—';
+    html+=`<div class="pick">
+      <div class="pt"><span class="pl">${p.league}</span><span class="ptime">${fmtDate(p.commence_time)}</span></div>
+      <div class="pm">
+        <div class="pn">${i+1}</div>
+        <div class="pi">
+          <div class="pmt">${p.match}</div>
+          <div class="ptp">${p.name}${isVal?'<span class="vbdg">✓ VALUE</span>':'<span class="nvbdg">NO VALUE</span>'}</div>
+        </div>
+        <div class="po">@ ${p.odds}</div>
+      </div>
+      <div class="prow"><span class="plbl">Prob. esito</span><div class="pbgb"><div class="pbfill" style="width:${pct}%"></div></div><span class="pval">${pct}%</span></div>
+      <div class="prow"><span class="plbl">Over 2.5</span><div class="pbgb"><div class="pbfill" style="width:${o25}%"></div></div><span class="pval">${o25}%</span></div>
+      <div class="prow"><span class="plbl">Goal/Goal</span><div class="pbgb"><div class="pbfill" style="width:${gg}%"></div></div><span class="pval">${gg}%</span></div>
+      <div class="mstats">
+        <div class="ms"><div class="mv ${parseFloat(eg)>2.5?'ok':'warn'}">${eg}</div><div class="mlbl">Gol attesi (λ)</div></div>
+        <div class="ms"><div class="mv">${Math.round((p.home_form||0)*100)}%</div><div class="mlbl">Forma casa</div></div>
+        <div class="ms"><div class="mv">${Math.round((p.away_form||0)*100)}%</div><div class="mlbl">Forma trasferta</div></div>
+      </div>
+    </div>`;
+  });
+  const dots=ri.dots.map(c=>`<div class="rd ${c}"></div>`).join('');
+  html+=`<div class="tot"><div><div class="tlbl">QUOTA TOTALE</div><div class="tsub">ottimizzata verso x${tQ} • ${data.picks.length} selezioni</div></div><div class="tval">${data.total_odds}</div></div>
+  <div class="riskbar">${dots}</div><div class="rlbl">${ri.lbl}</div></div>`;
+  document.getElementById('results').innerHTML=html;
+  document.getElementById('sbar').style.display='flex';
+  document.getElementById('sL').textContent=data.leagues_with_data;
+  document.getElementById('sM').textContent=data.matches_analyzed;
+  document.getElementById('sP').textContent=data.picks.length;
+}
+
+async function gen(){
+  const backendUrl=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  const oddsKey=document.getElementById('oddsKey').value.trim();
+  const fbKey=document.getElementById('fbKey').value.trim();
+  if(!backendUrl){showErr('Inserisci il Backend URL di Railway.');return}
+  if(!oddsKey){showErr('Inserisci la Odds API key.');return}
+  save();hideErr();
+  document.getElementById('results').innerHTML='';
+  document.getElementById('sbar').style.display='none';
+  const btn=document.getElementById('gbtn');
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> Analisi in corso...';
+  prog('Connessione al server...',5);
+
+  try{
+    prog('Recupero quote e statistiche...',20);
+    const r=await fetch(backendUrl+'/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({odds_api_key:oddsKey,football_api_key:fbKey||null,target:tQ})
+    });
+    prog('Calcolo Poisson e combinazione ottimale...',80);
+    const data=await r.json();
+    document.getElementById('prog').style.display='none';
+    if(data.error){showErr(data.error)}
+    else{render(data)}
+  }catch(e){
+    showErr('Impossibile contattare il server Railway. Controlla il Backend URL. Errore: '+e.message);
+  }
+  btn.disabled=false;btn.innerHTML='⚽ Genera Multipla del Giorno';
+  document.getElementById('prog').style.display='none';
+}
+</script>
+</body>
+</html>
