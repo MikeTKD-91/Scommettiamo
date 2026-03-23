@@ -58,6 +58,27 @@ TARGET_CONFIG = {
 LEAGUE_AVG = 1.35  # media europea gol per squadra per partita
 _stats_cache = {}
 _team_id_cache = {}
+_sofa_cache = {}   # Cache SofaScore team stats
+_sofa_team_id_cache = {}  # Cache SofaScore team IDs
+
+# Mappa lega → tournament ID SofaScore
+SOFA_LEAGUE_IDS = {
+    "PL":  {"tid": 17,  "sid": 61627},  # Premier League
+    "SA":  {"tid": 23,  "sid": 63515},  # Serie A
+    "PD":  {"tid": 8,   "sid": 61643},  # La Liga
+    "BL1": {"tid": 35,  "sid": 63516},  # Bundesliga
+    "FL1": {"tid": 34,  "sid": 63518},  # Ligue 1
+    "CL":  {"tid": 7,   "sid": 61671},  # Champions League
+    "EL":  {"tid": 679, "sid": 61671},  # Europa League
+    "PPL": {"tid": 238, "sid": 63521},  # Primeira Liga
+    "DED": {"tid": 37,  "sid": 63522},  # Eredivisie
+}
+
+SOFA_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json",
+    "Referer": "https://www.sofascore.com/",
+}
 
 # Cache delle quote — evita chiamate API ripetute
 # Struttura: { "YYYY-MM-DD": {"picks": [...], "leagues": [...], "timestamp": float} }
@@ -218,55 +239,154 @@ def get_stats(name, fd_code, fd_key):
         return res
     except: return None
 
-def calc_lambda(hs, as_):
+
+def get_sofa_team_id(team_name, sofa_tid, sofa_sid):
+    """Trova l'ID squadra su SofaScore cercando negli standings"""
+    ck = f"{team_name}_{sofa_tid}"
+    if ck in _sofa_team_id_cache: return _sofa_team_id_cache[ck]
+    try:
+        r = requests.get(
+            f"https://api.sofascore.com/api/v1/unique-tournament/{sofa_tid}/season/{sofa_sid}/standings/total",
+            headers=SOFA_HEADERS, timeout=8
+        )
+        if not r.ok: return None
+        standings = r.json().get("standings", [{}])[0].get("rows", [])
+        nl = team_name.lower()
+        for row in standings:
+            t = row.get("team", {})
+            t_name = t.get("name", "").lower()
+            t_short = t.get("shortName", "").lower()
+            if nl in t_name or t_name in nl or nl in t_short or t_short in nl:
+                _sofa_team_id_cache[ck] = t.get("id")
+                return t.get("id")
+    except: pass
+    return None
+
+def get_sofa_stats(team_name, fd_code):
+    """Recupera statistiche avanzate da SofaScore (bigChances, shots, form)"""
+    if fd_code not in SOFA_LEAGUE_IDS: return None
+    ck = f"sofa_{team_name}_{fd_code}"
+    if ck in _sofa_cache: return _sofa_cache[ck]
+    try:
+        ids = SOFA_LEAGUE_IDS[fd_code]
+        team_id = get_sofa_team_id(team_name, ids["tid"], ids["sid"])
+        if not team_id: return None
+
+        r = requests.get(
+            f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{ids['tid']}/season/{ids['sid']}/statistics/overall",
+            headers=SOFA_HEADERS, timeout=8
+        )
+        if not r.ok: return None
+        stats = r.json().get("statistics", {})
+        if not stats: return None
+
+        matches = stats.get("matches") or 1
+
+        # Proxy xG da bigChances e shots
+        # Formula calibrata empiricamente: bigChance=0.35xG, shotOnTarget=0.10xG, shot=0.03xG
+        bc    = (stats.get("bigChances") or 0) / matches
+        sot   = (stats.get("shotsOnTarget") or 0) / matches
+        shots = (stats.get("shots") or 0) / matches
+        xg_proxy = bc * 0.35 + sot * 0.10 + shots * 0.03
+
+        bc_against  = (stats.get("bigChancesConceded") or 0) / matches if stats.get("bigChancesConceded") else None
+        sot_against = (stats.get("shotsOnTargetAgainst") or 0) / matches if stats.get("shotsOnTargetAgainst") else None
+        xga_proxy = None
+        if bc_against is not None:
+            xga_proxy = bc_against * 0.35 + (sot_against or 0) * 0.10
+
+        result = {
+            "xg_proxy": round(xg_proxy, 3),
+            "xga_proxy": round(xga_proxy, 3) if xga_proxy else None,
+            "big_chances_per_game": round(bc, 3),
+            "shots_on_target_per_game": round(sot, 3),
+            "goals_scored": stats.get("goalsScored"),
+            "goals_conceded": stats.get("goalsConceded"),
+            "matches": matches,
+        }
+        _sofa_cache[ck] = result
+        return result
+    except: return None
+
+def calc_lambda(hs, as_, sofa_h=None, sofa_a=None):
     """
-    Calcola gol attesi con incroci avanzati:
-    1. Coefficienti attacco/difesa normalizzati
-    2. Media lega come riferimento
-    3. Fattore casa pesato
-    4. Correzione forma recente
+    Calcola gol attesi con incroci avanzati a 3 livelli:
+    1. football-data.org: coefficienti attacco/difesa, forma pesata, fattore casa
+    2. SofaScore: xG proxy (bigChances + shots) per correzione
+    3. Incrocio finale: media pesata tra i due modelli
     """
     avg = LEAGUE_AVG
 
+    # ── Livello 1: football-data.org ──────────────────────────────────────────
     if hs and as_:
-        # Lambda casa = media lega * attacco casa * difesa trasferta avversaria
-        lh = avg * hs["att_h"] * as_["def_a"]
-        # Lambda trasferta = media lega * attacco trasferta * difesa casa avversaria
-        la = avg * as_["att_a"] * hs["def_h"]
-
-        # Correggi con fattore casa specifico
-        lh *= min(hs["home_advantage"], 1.4)
-
-        # Correggi con forma recente (±15% max)
-        form_factor_h = 0.85 + (hs["wf_home"] * 0.30)  # range 0.85-1.15
-        form_factor_a = 0.85 + (as_["wf_away"] * 0.30)
-        lh *= form_factor_h
-        la *= form_factor_a
-
+        lh_fd = avg * hs["att_h"] * as_["def_a"] * min(hs["home_advantage"], 1.4)
+        la_fd = avg * as_["att_a"] * hs["def_h"]
+        lh_fd *= 0.85 + hs["wf_home"] * 0.30
+        la_fd *= 0.85 + as_["wf_away"] * 0.30
     elif hs:
-        lh = avg * hs["att_h"]
-        la = avg * hs["def_h"]
-        lh *= min(hs["home_advantage"], 1.3)
-        lh *= 0.85 + hs["wf_home"] * 0.30
+        lh_fd = avg * hs["att_h"] * min(hs["home_advantage"], 1.3) * (0.85 + hs["wf_home"] * 0.30)
+        la_fd = avg * hs["def_h"]
     elif as_:
-        lh = avg * as_["def_a"]
-        la = avg * as_["att_a"]
-        la *= 0.85 + as_["wf_away"] * 0.30
+        lh_fd = avg * as_["def_a"]
+        la_fd = avg * as_["att_a"] * (0.85 + as_["wf_away"] * 0.30)
     else:
-        lh = la = avg
+        lh_fd = la_fd = avg
+
+    lh_fd = max(0.3, min(4.5, lh_fd))
+    la_fd = max(0.3, min(4.5, la_fd))
+
+    # ── Livello 2: SofaScore xG proxy ─────────────────────────────────────────
+    lh_sofa = la_sofa = None
+
+    if sofa_h and sofa_h.get("xg_proxy"):
+        lh_sofa = sofa_h["xg_proxy"]
+        # Correggi con xGA avversario se disponibile
+        if sofa_a and sofa_a.get("xga_proxy"):
+            lh_sofa = (lh_sofa + sofa_a["xga_proxy"]) / 2
+
+    if sofa_a and sofa_a.get("xg_proxy"):
+        la_sofa = sofa_a["xg_proxy"]
+        if sofa_h and sofa_h.get("xga_proxy"):
+            la_sofa = (la_sofa + sofa_h["xga_proxy"]) / 2
+
+    # ── Livello 3: incrocio pesato ─────────────────────────────────────────────
+    # Se abbiamo entrambe le fonti: 60% football-data + 40% SofaScore
+    # Se solo football-data: 100% football-data
+    # Se solo SofaScore: 100% SofaScore
+    # Se nessuna: Poisson base
+    if lh_sofa and lh_fd != avg:
+        lh = lh_fd * 0.60 + lh_sofa * 0.40
+    elif lh_sofa:
+        lh = lh_sofa
+    else:
+        lh = lh_fd
+
+    if la_sofa and la_fd != avg:
+        la = la_fd * 0.60 + la_sofa * 0.40
+    elif la_sofa:
+        la = la_sofa
+    else:
+        la = la_fd
 
     return max(0.3, min(4.5, lh)), max(0.3, min(4.5, la))
 
 def analyze_event(event, league, fd_key):
     home, away = event["home_team"], event["away_team"]
     fd_code = league.get("fd_code")
+
+    # Fonte 1: football-data.org (solo top campionati con fd_code)
     hs  = get_stats(home, fd_code, fd_key) if fd_key and fd_code else None
     as_ = get_stats(away, fd_code, fd_key) if fd_key and fd_code else None
 
-    lh, la = calc_lambda(hs, as_)
+    # Fonte 2: SofaScore (per tutti i campionati con mapping)
+    sofa_h = get_sofa_stats(home, fd_code) if fd_code else None
+    sofa_a = get_sofa_stats(away, fd_code) if fd_code else None
+
+    lh, la = calc_lambda(hs, as_, sofa_h, sofa_a)
     pr = calc_probs(lh, la)
     exp_g = round(lh + la, 2)
-    has_real = bool(hs or as_)
+    has_real = bool(hs or as_ or sofa_h or sofa_a)
+    has_xg   = bool(sofa_h and sofa_h.get('xg_proxy') or sofa_a and sofa_a.get('xg_proxy'))
 
     # Forma display
     hf = hs["wf_home"] if hs else 0.5
@@ -323,7 +443,7 @@ def analyze_event(event, league, fd_key):
         "match": f"{home} vs {away}",
         "league": f"{league['flag']} {league['name']}",
         "commence_time": event.get("commence_time"),
-        "score": p["edge"]*50 + p["prob"]*30 + (hf+af)*10 + (10 if has_real else 0),
+        "score": p["edge"]*50 + p["prob"]*30 + (hf+af)*10 + (10 if has_real else 0) + (8 if has_xg else 0),
     } for p in picks]
 
 def find_best_combo(all_picks, target, cfg):
@@ -515,63 +635,8 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
 
-@app.route("/test-sofascore")
-def test_sofascore():
-    h = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json",
-        "Referer": "https://www.sofascore.com/",
-    }
-    results = {}
-
-    # Prima prendi gli eventi recenti Serie A per trovare team IDs reali
-    r = requests.get("https://api.sofascore.com/api/v1/unique-tournament/23/season/63515/events/last/0", headers=h, timeout=10)
-    events_data = r.json()
-    events = events_data.get("events", [])
-
-    # Prendi il primo evento e i team IDs
-    if events:
-        ev = events[0]
-        home_id = ev.get("homeTeam", {}).get("id")
-        away_id = ev.get("awayTeam", {}).get("id")
-        home_name = ev.get("homeTeam", {}).get("name")
-        away_name = ev.get("awayTeam", {}).get("name")
-        results["sample_match"] = f"{home_name} ({home_id}) vs {away_name} ({away_id})"
-
-        # Test statistiche squadra con ID reale
-        for team_id, team_name in [(home_id, home_name), (away_id, away_name)]:
-            r2 = requests.get(
-                f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/23/season/63515/statistics/overall",
-                headers=h, timeout=10
-            )
-            try:
-                d = r2.json()
-                stats = d.get("statistics", {})
-                results[f"stats_{team_name}"] = {
-                    "status": r2.status_code,
-                    "xg": stats.get("expectedGoals"),
-                    "xga": stats.get("expectedGoalsAgainst"),
-                    "goals": stats.get("goals"),
-                    "goals_conceded": stats.get("goalsConceded"),
-                    "matches": stats.get("matches"),
-                    "all_keys": list(stats.keys())[:20],
-                }
-            except Exception as e:
-                results[f"stats_{team_name}"] = {"error": str(e), "raw": r2.text[:200]}
-
-    # Test partite di oggi
-    import datetime
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    r3 = requests.get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}", headers=h, timeout=10)
-    try:
-        d3 = r3.json()
-        events_today = d3.get("events", [])
-        results["today_matches"] = {
-            "count": len(events_today),
-            "sample": [f"{e.get('homeTeam',{}).get('name')} vs {e.get('awayTeam',{}).get('name')}" for e in events_today[:5]]
-        }
-    except Exception as e:
-        results["today_matches"] = {"error": str(e)}
-
-    return jsonify(results)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
