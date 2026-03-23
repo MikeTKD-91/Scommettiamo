@@ -477,14 +477,14 @@ def generate():
             return [], False
 
     # Cerca oggi → domani → dopodomani
+    # "oggi" = da adesso fino alle 23:59 — sempre, qualunque ora sia
     all_picks, leagues_found, day_offset, cache_used = [], [], 0, False
 
     for day_offset in range(3):
         day_dt   = now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = day_dt.strftime("%Y-%m-%d")
-        start    = day_dt.astimezone(timezone.utc)
+        start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
-        if day_offset == 0: start = now_utc
 
         day_picks = []
         for lg in LEAGUES:
