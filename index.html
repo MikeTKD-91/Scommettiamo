@@ -160,7 +160,7 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 <div class="hdr">
   <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
   <h1 class="hdr-title"><span>Scommettiamo</span></h1>
-  <p class="hdr-sub">Poisson · Dixon-Coles · Value Bet · 32 campionati</p>
+  <p class="hdr-sub">Poisson · Dixon-Coles · SofaScore · Tutti i campionati</p>
 </div>
 
 <!-- CONFIG CARD -->
@@ -170,36 +170,9 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
     <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
   </div>
   <span class="saved-tag" id="urlSaved">✓ Salvato</span>
-
-  <div class="divider"></div>
-
-  <span class="field-label">Odds API Key <span style="color:var(--re);font-size:.6rem">obbligatoria</span></span>
-  <div class="field-wrap">
-    <input type="password" id="oddsKey" placeholder="La tua key di the-odds-api.com">
-    <button class="xbtn" onclick="clr('oddsKey','odSaved')">✕</button>
-  </div>
-  <span class="saved-tag" id="odSaved">✓ Salvata</span>
-
-  <div style="height:10px"></div>
-
-  <span class="field-label">Football Data Key <span style="color:var(--mu);font-size:.6rem">opzionale</span></span>
-  <div class="field-wrap">
-    <input type="password" id="fbKey" placeholder="Migliora l'analisi statistica">
-    <button class="xbtn" onclick="clr('fbKey','fbSaved')">✕</button>
-  </div>
-  <span class="saved-tag" id="fbSaved">✓ Salvata</span>
-
   <div class="field-hint">
-    Chiavi salvate solo nel tuo browser, mai inviate a terzi.<br>
-    <a href="https://the-odds-api.com" target="_blank">Odds API →</a> &nbsp;
-    <a href="https://www.football-data.org" target="_blank">Football Data →</a>
-  </div>
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--br)">
-    <button onclick="syncStats()" id="syncBtn" style="background:transparent;border:1px solid var(--br);color:var(--mu);border-radius:10px;padding:8px 14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;transition:all .2s">
-      🔄 Sync Statistiche nel DB
-    </button>
-    <span id="syncMsg" style="color:var(--mu);font-size:.68rem;margin-left:8px"></span>
-    <div style="color:var(--m2);font-size:.65rem;margin-top:5px">Aggiorna il database locale con i dati stagione. Fallo 1 volta al giorno.</div>
+    Nessuna API key necessaria — i dati vengono da SofaScore gratuitamente.<br>
+    <a href="https://railway.app" target="_blank">Railway →</a>
   </div>
 </div>
 
@@ -340,7 +313,7 @@ async function syncStats(){
     const r=await fetch(bu+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({football_api_key:fk})});
     const d=await r.json();
     if(d.error){msg.textContent='Errore: '+d.error;}
-    else{msg.style.color='var(--g)';msg.textContent='✓ Sync completato! '+JSON.stringify(d.synced);}
+    else{msg.style.color='var(--g)';msg.textContent='✓ '+d.status;}
   }catch(e){msg.textContent='Errore: '+e.message;}
   btn.disabled=false;
 }
@@ -350,7 +323,6 @@ async function gen(){
   const ok=document.getElementById('oddsKey').value.trim();
   const fk=document.getElementById('fbKey').value.trim();
   if(!bu){showErr('Inserisci il Backend URL di Railway.');return}
-  if(!ok){showErr('Inserisci la Odds API key.');return}
   save();hideErr();
   document.getElementById('results').innerHTML='';
   document.getElementById('sbar').classList.remove('show');
@@ -360,7 +332,7 @@ async function gen(){
   try{
     const r=await fetch(bu+'/generate',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({odds_api_key:ok,football_api_key:fk||null})
+      body:JSON.stringify({target:3})
     });
     const d=await r.json();
 
