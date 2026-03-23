@@ -1,89 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests, math, itertools, os, sqlite3, threading, time
+import requests, math, itertools, os, sqlite3, threading, time, json
 from datetime import datetime, timezone, timedelta
-import json
 
 app = Flask(__name__)
 CORS(app)
 
-# ── Database ───────────────────────────────────────────────────────────────────
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scommettiamo.db")
 db_lock = threading.Lock()
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+SOFA_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json",
+    "Referer": "https://www.sofascore.com/",
+}
 
-def init_db():
-    with db_lock:
-        conn = get_db()
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS team_stats (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                team_name TEXT NOT NULL,
-                fd_code TEXT NOT NULL,
-                season TEXT NOT NULL,
-                att_h REAL, att_a REAL,
-                def_h REAL, def_a REAL,
-                wf_home REAL, wf_away REAL,
-                home_advantage REAL,
-                form TEXT,
-                updated_at TEXT,
-                UNIQUE(team_name, fd_code, season)
-            );
-            CREATE TABLE IF NOT EXISTS odds_cache (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                league_key TEXT NOT NULL,
-                data TEXT NOT NULL,
-                updated_at TEXT,
-                UNIQUE(date, league_key)
-            );
-            CREATE TABLE IF NOT EXISTS job_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_name TEXT,
-                status TEXT,
-                message TEXT,
-                ran_at TEXT
-            );
-        """)
-        conn.commit()
-        conn.close()
-
-init_db()
-
-# ── Config ─────────────────────────────────────────────────────────────────────
 LEAGUE_AVG = 1.35
-
-LEAGUES = [
-    {"key": "soccer_epl",                        "name": "Premier League",    "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": "PL"},
-    {"key": "soccer_italy_serie_a",              "name": "Serie A",           "flag": "🇮🇹",  "fd_code": "SA"},
-    {"key": "soccer_spain_la_liga",              "name": "La Liga",           "flag": "🇪🇸",  "fd_code": "PD"},
-    {"key": "soccer_germany_bundesliga",         "name": "Bundesliga",        "flag": "🇩🇪",  "fd_code": "BL1"},
-    {"key": "soccer_france_ligue_one",           "name": "Ligue 1",           "flag": "🇫🇷",  "fd_code": "FL1"},
-    {"key": "soccer_efl_champ",                  "name": "Championship",      "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
-    {"key": "soccer_italy_serie_b",              "name": "Serie B",           "flag": "🇮🇹",  "fd_code": None},
-    {"key": "soccer_spain_segunda_division",     "name": "La Liga 2",         "flag": "🇪🇸",  "fd_code": None},
-    {"key": "soccer_germany_bundesliga2",        "name": "Bundesliga 2",      "flag": "🇩🇪",  "fd_code": None},
-    {"key": "soccer_uefa_champs_league",         "name": "Champions League",  "flag": "🏆",   "fd_code": "CL"},
-    {"key": "soccer_england_league1",            "name": "League One",        "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "fd_code": None},
-    {"key": "soccer_germany_liga3",              "name": "3. Liga",           "flag": "🇩🇪",  "fd_code": None},
-    {"key": "soccer_portugal_primeira_liga",     "name": "Primeira Liga",     "flag": "🇵🇹",  "fd_code": "PPL"},
-    {"key": "soccer_netherlands_eredivisie",     "name": "Eredivisie",        "flag": "🇳🇱",  "fd_code": "DED"},
-    {"key": "soccer_uefa_europa_league",         "name": "Europa League",     "flag": "🏆",   "fd_code": "EL"},
-    {"key": "soccer_uefa_europa_conference_league", "name": "Conference League", "flag": "🏆", "fd_code": None},
-    {"key": "soccer_france_ligue_two",           "name": "Ligue 2",           "flag": "🇫🇷",  "fd_code": None},
-    {"key": "soccer_belgium_first_div",          "name": "Jupiler Pro",       "flag": "🇧🇪",  "fd_code": None},
-    {"key": "soccer_greece_super_league",        "name": "Super League",      "flag": "🇬🇷",  "fd_code": None},
-    {"key": "soccer_turkey_super_lig",           "name": "Süper Lig",         "flag": "🇹🇷",  "fd_code": None},
-    {"key": "soccer_brazil_campeonato",          "name": "Brasil Série A",    "flag": "🇧🇷",  "fd_code": None},
-    {"key": "soccer_argentina_primera_division", "name": "Primera División",  "flag": "🇦🇷",  "fd_code": None},
-    {"key": "soccer_usa_mls",                    "name": "MLS",               "flag": "🇺🇸",  "fd_code": None},
-    {"key": "soccer_japan_j_league",             "name": "J-League",          "flag": "🇯🇵",  "fd_code": None},
-    {"key": "soccer_mexico_ligamx",              "name": "Liga MX",           "flag": "🇲🇽",  "fd_code": None},
-]
 
 TARGET_CONFIG = {
     3:   {"min_picks": 2, "max_picks": 3},
@@ -97,6 +29,40 @@ def get_cfg(target):
     for k in sorted(TARGET_CONFIG.keys()):
         if target <= k: return TARGET_CONFIG[k]
     return TARGET_CONFIG[100]
+
+# ── Database ───────────────────────────────────────────────────────────────────
+def get_db():
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    with db_lock:
+        conn = get_db()
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS sofa_team_stats (
+                team_id INTEGER,
+                tournament_id INTEGER,
+                season_id INTEGER,
+                goals_scored INTEGER,
+                goals_conceded INTEGER,
+                big_chances INTEGER,
+                shots_on_target INTEGER,
+                shots INTEGER,
+                matches INTEGER,
+                updated_at TEXT,
+                PRIMARY KEY (team_id, tournament_id, season_id)
+            );
+            CREATE TABLE IF NOT EXISTS sofa_events_cache (
+                date TEXT PRIMARY KEY,
+                data TEXT,
+                updated_at TEXT
+            );
+        """)
+        conn.commit()
+        conn.close()
+
+init_db()
 
 # ── Poisson + Dixon-Coles ──────────────────────────────────────────────────────
 def dc_tau(x, y, lh, la, rho=-0.13):
@@ -121,206 +87,252 @@ def calc_probs(lh, la):
             if h > 0 and a > 0: gg += p
     return {"over15": min(o15,.99), "over25": min(o25,.99), "gg": min(gg,.99)}
 
-# ── Stats dal DB ───────────────────────────────────────────────────────────────
-def get_stats_from_db(team_name, fd_code, season="2024"):
-    if not fd_code: return None
+# ── Conversione quota frazionaria → decimale ───────────────────────────────────
+def frac_to_dec(frac_str):
+    try:
+        if "/" in str(frac_str):
+            n, d = frac_str.split("/")
+            return round(int(n) / int(d) + 1, 3)
+        return float(frac_str) + 1
+    except:
+        return None
+
+# ── SofaScore API ─────────────────────────────────────────────────────────────
+def sofa_get(url, timeout=8):
+    try:
+        r = requests.get(url, headers=SOFA_HEADERS, timeout=timeout)
+        if r.ok: return r.json()
+    except: pass
+    return None
+
+def get_team_stats(team_id, tournament_id, season_id):
+    """Recupera statistiche squadra — prima dal DB, poi da SofaScore"""
     with db_lock:
         conn = get_db()
         row = conn.execute(
-            "SELECT * FROM team_stats WHERE team_name=? AND fd_code=? AND season=?",
-            (team_name, fd_code, season)
+            "SELECT * FROM sofa_team_stats WHERE team_id=? AND tournament_id=? AND season_id=?",
+            (team_id, tournament_id, season_id)
         ).fetchone()
         conn.close()
-    if not row: return None
-    return dict(row)
 
-def save_stats_to_db(team_name, fd_code, season, stats):
+    if row:
+        updated = datetime.fromisoformat(row["updated_at"])
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        if age < 3600 * 12:  # fresco per 12 ore
+            return dict(row)
+
+    # Fetch da SofaScore
+    data = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{tournament_id}/season/{season_id}/statistics/overall")
+    if not data: return None
+    stats = data.get("statistics", {})
+    if not stats: return None
+
+    matches = stats.get("matches") or 1
+    result = {
+        "team_id": team_id,
+        "tournament_id": tournament_id,
+        "season_id": season_id,
+        "goals_scored": stats.get("goalsScored") or 0,
+        "goals_conceded": stats.get("goalsConceded") or 0,
+        "big_chances": stats.get("bigChances") or 0,
+        "shots_on_target": stats.get("shotsOnTarget") or 0,
+        "shots": stats.get("shots") or 0,
+        "matches": matches,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
     with db_lock:
         conn = get_db()
         conn.execute("""
-            INSERT OR REPLACE INTO team_stats
-            (team_name, fd_code, season, att_h, att_a, def_h, def_a, wf_home, wf_away, home_advantage, form, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (
-            team_name, fd_code, season,
-            stats["att_h"], stats["att_a"],
-            stats["def_h"], stats["def_a"],
-            stats["wf_home"], stats["wf_away"],
-            stats["home_advantage"], stats["form"],
-            datetime.now(timezone.utc).isoformat()
-        ))
+            INSERT OR REPLACE INTO sofa_team_stats
+            (team_id, tournament_id, season_id, goals_scored, goals_conceded,
+             big_chances, shots_on_target, shots, matches, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, tuple(result.values()))
         conn.commit()
         conn.close()
 
-# ── football-data.org sync ─────────────────────────────────────────────────────
-def weighted_form(matches_data, is_home):
-    n = len(matches_data)
-    if n == 0: return 0.5
-    total_w = total_pts = 0
-    for i, m in enumerate(matches_data):
-        w = n - i
-        total_w += w
-        r = m["result_home"] if is_home else m["result_away"]
-        pts = 3 if r == "W" else 1 if r == "D" else 0
-        total_pts += pts * w
-    return total_pts / (total_w * 3)
+    return result
 
-def fetch_team_stats_fd(team_name, team_id, fd_code, fd_key, season="2024"):
-    """Scarica stats squadra da football-data.org e salva nel DB"""
-    existing = get_stats_from_db(team_name, fd_code, season)
-    if existing:
-        updated = datetime.fromisoformat(existing["updated_at"])
-        if (datetime.now(timezone.utc) - updated).total_seconds() < 3600 * 12:
-            return existing  # fresco, non aggiornare
+def calc_xg_proxy(stats):
+    """Calcola xG proxy da bigChances e shots on target"""
+    if not stats: return LEAGUE_AVG
+    m = stats["matches"] or 1
+    bc  = stats["big_chances"] / m
+    sot = stats["shots_on_target"] / m
+    sh  = stats["shots"] / m
+    return round(bc * 0.35 + sot * 0.10 + sh * 0.03, 3)
 
-    try:
-        r = requests.get(
-            f"https://api.football-data.org/v4/teams/{team_id}/matches?status=FINISHED&limit=10",
-            headers={"X-Auth-Token": fd_key}, timeout=8
-        )
-        if not r.ok: return existing
-        matches = r.json().get("matches", [])
-        if not matches: return existing
-
-        home_m, away_m = [], []
-        gfh = gfa = gah = gaa = ph = pa = 0
-        for m in matches:
-            hn = m["homeTeam"]["name"]
-            sc = m["score"]["fullTime"]
-            gh = sc.get("home", 0) or 0
-            ga = sc.get("away", 0) or 0
-            is_home = team_name.lower() in hn.lower() or hn.lower() in team_name.lower()
-            if is_home:
-                gfh += gh; gah += ga; ph += 1
-                home_m.append({"result_home": "W" if gh>ga else "D" if gh==ga else "L"})
-            else:
-                gfa += ga; gaa += gh; pa += 1
-                away_m.append({"result_away": "W" if ga>gh else "D" if ga==gh else "L"})
-
-        stats = {
-            "att_h": (gfh/ph/LEAGUE_AVG) if ph > 0 else 1.0,
-            "att_a": (gfa/pa/LEAGUE_AVG) if pa > 0 else 1.0,
-            "def_h": (gah/ph/LEAGUE_AVG) if ph > 0 else 1.0,
-            "def_a": (gaa/pa/LEAGUE_AVG) if pa > 0 else 1.0,
-            "wf_home": weighted_form(home_m, True),
-            "wf_away": weighted_form(away_m, False),
-            "home_advantage": min((gfh/ph)/(gfa/pa) if ph>0 and pa>0 and gfa>0 else 1.15, 2.0),
-            "form": "".join([m["result_home"] for m in home_m] + [m["result_away"] for m in away_m])[-10:],
-        }
-        save_stats_to_db(team_name, fd_code, season, stats)
-        return get_stats_from_db(team_name, fd_code, season)
-    except:
-        return existing
-
-def sync_league_stats(fd_code, fd_key, season="2024"):
-    """Sync completo di tutte le squadre di un campionato — chiamato dal job notturno"""
-    try:
-        r = requests.get(
-            f"https://api.football-data.org/v4/competitions/{fd_code}/teams",
-            headers={"X-Auth-Token": fd_key}, timeout=10
-        )
-        if not r.ok: return 0
-        teams = r.json().get("teams", [])
-        count = 0
-        for team in teams:
-            fetch_team_stats_fd(team["name"], team["id"], fd_code, fd_key, season)
-            count += 1
-            time.sleep(0.5)  # rispetta rate limit
-        return count
-    except:
-        return 0
-
-# ── Lambda calc ────────────────────────────────────────────────────────────────
-def calc_lambda(hs, as_):
+def calc_lambda(h_stats, a_stats):
+    """Lambda incrociati usando xG proxy e media gol"""
     avg = LEAGUE_AVG
-    if hs and as_:
-        lh = avg * hs["att_h"] * as_["def_a"] * min(hs["home_advantage"], 1.4)
-        la = avg * as_["att_a"] * hs["def_h"]
-        lh *= 0.85 + hs["wf_home"] * 0.30
-        la *= 0.85 + as_["wf_away"] * 0.30
-    elif hs:
-        lh = avg * hs["att_h"] * min(hs["home_advantage"], 1.3) * (0.85 + hs["wf_home"] * 0.30)
-        la = avg * hs["def_h"]
-    elif as_:
-        lh = avg * as_["def_a"]
-        la = avg * as_["att_a"] * (0.85 + as_["wf_away"] * 0.30)
+
+    if h_stats and a_stats:
+        hm = h_stats["matches"] or 1
+        am = a_stats["matches"] or 1
+
+        # Media gol normalizzata
+        att_h = (h_stats["goals_scored"] / hm) / avg
+        att_a = (a_stats["goals_scored"] / am) / avg
+        def_h = (h_stats["goals_conceded"] / hm) / avg
+        def_a = (a_stats["goals_conceded"] / am) / avg
+
+        # xG proxy
+        xg_h = calc_xg_proxy(h_stats)
+        xg_a = calc_xg_proxy(a_stats)
+
+        # Lambda incrociato: media gol × difesa avversaria, corretto con xG
+        lh_goals = avg * att_h * def_a
+        la_goals = avg * att_a * def_h
+
+        # Fusione 60% gol reali + 40% xG proxy
+        lh = lh_goals * 0.60 + xg_h * 0.40
+        la = la_goals * 0.60 + xg_a * 0.40
+
+    elif h_stats:
+        lh = calc_xg_proxy(h_stats)
+        la = avg
+    elif a_stats:
+        lh = avg
+        la = calc_xg_proxy(a_stats)
     else:
         lh = la = avg
+
     return max(0.3, min(4.5, lh)), max(0.3, min(4.5, la))
 
-def form_score(form):
-    if not form: return 0.5
-    return sum(3 if c=="W" else 1 if c=="D" else 0 for c in form[-5:]) / 15
+def get_event_odds(event_id):
+    """Recupera quote Over/Under da SofaScore"""
+    data = sofa_get(f"https://api.sofascore.com/api/v1/event/{event_id}/odds/1/all")
+    if not data: return {}
 
-# ── Analisi evento ─────────────────────────────────────────────────────────────
-def analyze_event(event, league, fd_key):
-    home, away = event["home_team"], event["away_team"]
-    fd_code = league.get("fd_code")
+    odds = {}
+    for market in data.get("markets", []):
+        mg = market.get("marketGroup", "")
+        choices = market.get("choices", [])
 
-    # Prova prima dal DB (dati pre-caricati)
-    hs  = get_stats_from_db(home, fd_code) if fd_code else None
-    as_ = get_stats_from_db(away, fd_code) if fd_code else None
+        if "Over/Under" in mg or "Goals" in mg:
+            for ch in choices:
+                name = ch.get("name", "")
+                frac = ch.get("fractionalValue") or ch.get("initialFractionalValue")
+                dec = frac_to_dec(frac)
+                if dec and dec > 1:
+                    odds[name] = dec
 
-    # Se non nel DB e abbiamo la key, scarica al volo
-    if not hs and fd_key and fd_code:
-        try:
-            r = requests.get(
-                f"https://api.football-data.org/v4/competitions/{fd_code}/teams",
-                headers={"X-Auth-Token": fd_key}, timeout=6
-            )
-            if r.ok:
-                teams = r.json().get("teams", [])
-                for t in teams:
-                    nl = home.lower()
-                    tn = t["name"].lower()
-                    if nl in tn or tn in nl:
-                        hs = fetch_team_stats_fd(home, t["id"], fd_code, fd_key)
-                    nl2 = away.lower()
-                    if nl2 in tn or tn in nl2:
-                        as_ = fetch_team_stats_fd(away, t["id"], fd_code, fd_key)
-        except: pass
+    return odds
 
-    lh, la = calc_lambda(hs, as_)
+def get_today_events(date_str):
+    """Recupera tutti gli eventi football di oggi da SofaScore con cache DB"""
+    with db_lock:
+        conn = get_db()
+        row = conn.execute("SELECT data, updated_at FROM sofa_events_cache WHERE date=?", (date_str,)).fetchone()
+        conn.close()
+
+    if row:
+        updated = datetime.fromisoformat(row["updated_at"])
+        age = (datetime.now(timezone.utc) - updated).total_seconds()
+        if age < 3600 * 2:  # cache 2 ore
+            return json.loads(row["data"])
+
+    data = sofa_get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{date_str}", timeout=12)
+    if not data: return []
+    events = data.get("events", [])
+
+    with db_lock:
+        conn = get_db()
+        conn.execute(
+            "INSERT OR REPLACE INTO sofa_events_cache (date, data, updated_at) VALUES (?,?,?)",
+            (date_str, json.dumps(events), datetime.now(timezone.utc).isoformat())
+        )
+        conn.commit()
+        conn.close()
+
+    return events
+
+def analyze_event(event, now_utc, end_utc):
+    """Analizza un singolo evento SofaScore"""
+    ct = event.get("startTimestamp")
+    if not ct: return []
+    event_time = datetime.fromtimestamp(ct, tz=timezone.utc)
+    if not (now_utc <= event_time <= end_utc): return []
+
+    # Salta eventi già iniziati o non programmati
+    status = event.get("status", {}).get("type", "")
+    if status in ["inprogress", "finished", "postponed", "canceled"]: return []
+
+    home_team = event.get("homeTeam", {})
+    away_team = event.get("awayTeam", {})
+    home_name = home_team.get("name", "")
+    away_name = away_team.get("name", "")
+    home_id   = home_team.get("id")
+    away_id   = away_team.get("id")
+    event_id  = event.get("id")
+    tournament = event.get("tournament", {})
+    league_name = tournament.get("name", "")
+    category = tournament.get("category", {})
+    country_flag = category.get("flag", "").title()
+    unique_t = tournament.get("uniqueTournament", {})
+    t_id = unique_t.get("id")
+    s_id = event.get("season", {}).get("id")
+
+    # Statistiche squadre
+    h_stats = get_team_stats(home_id, t_id, s_id) if home_id and t_id and s_id else None
+    a_stats = get_team_stats(away_id, t_id, s_id) if away_id and t_id and s_id else None
+    has_real = bool(h_stats or a_stats)
+
+    lh, la = calc_lambda(h_stats, a_stats)
     pr = calc_probs(lh, la)
-    hf = form_score(hs["form"] if hs else "")
-    af = form_score(as_["form"] if as_ else "")
     exp_g = round(lh + la, 2)
-    has_real = bool(hs or as_)
+
+    # Quote da SofaScore
+    odds_data = get_event_odds(event_id)
 
     picks = []
-    for bk in event.get("bookmakers", []):
-        markets = {m["key"]: m for m in bk.get("markets", [])}
-        if "totals" not in markets: continue
-        for o in markets["totals"]["outcomes"]:
-            point = float(o.get("point", 0))
-            odds  = float(o["price"])
-            name_o = o["name"]
-            if point == 1.5 and name_o == "Over":
-                prob = pr["over15"]
-                edge = prob - 1/odds
-                if 1.10 <= odds <= 1.65:
-                    picks.append({"name": "Over 1.5", "odds": round(odds,2), "prob": round(prob,3),
-                        "edge": round(edge,3), "market": "over15", "probs": pr,
-                        "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2), "has_real_stats": has_real})
-            if point == 2.5 and name_o == "Over":
-                prob = pr["over25"]
-                edge = prob - 1/odds
-                if 1.35 <= odds <= 2.60:
-                    picks.append({"name": "Over 2.5", "odds": round(odds,2), "prob": round(prob,3),
-                        "edge": round(edge,3), "market": "over25", "probs": pr,
-                        "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2), "has_real_stats": has_real})
-                # GG proxy
-                prob_gg = pr["gg"]
-                est_odds = round(1 / max(prob_gg, 0.01) * 1.05, 2)
-                if 1.40 <= est_odds <= 2.50 and prob_gg > 0.45:
-                    picks.append({"name": "Goal/Goal", "odds": est_odds, "prob": round(prob_gg,3),
-                        "edge": round(prob_gg - 1/est_odds, 3), "market": "gg", "probs": pr,
-                        "exp_g": exp_g, "home_form": round(hf,2), "away_form": round(af,2), "has_real_stats": has_real})
-        break
 
-    return [{**p, "match": f"{home} vs {away}", "league": f"{league['flag']} {league['name']}",
-        "commence_time": event.get("commence_time"),
-        "score": p["edge"]*50 + p["prob"]*30 + (hf+af)*10 + (10 if has_real else 0)
+    # Over 1.5
+    o15_odds = odds_data.get("Over 1.5") or odds_data.get("Over1.5")
+    if o15_odds and 1.10 <= o15_odds <= 1.65:
+        prob = pr["over15"]
+        edge = prob - 1/o15_odds
+        picks.append({"name": "Over 1.5", "odds": round(o15_odds,2), "prob": round(prob,3),
+            "edge": round(edge,3), "market": "over15"})
+
+    # Over 2.5
+    o25_odds = odds_data.get("Over 2.5") or odds_data.get("Over2.5")
+    if o25_odds and 1.35 <= o25_odds <= 2.60:
+        prob = pr["over25"]
+        edge = prob - 1/o25_odds
+        picks.append({"name": "Over 2.5", "odds": round(o25_odds,2), "prob": round(prob,3),
+            "edge": round(edge,3), "market": "over25"})
+
+    # GG — stima dalla probabilità Poisson se non disponibile nelle quote
+    gg_odds = odds_data.get("Yes") or odds_data.get("GG")
+    if not gg_odds:
+        prob_gg = pr["gg"]
+        if prob_gg > 0.45:
+            gg_odds = round(1 / prob_gg * 1.05, 2)
+    if gg_odds and 1.40 <= gg_odds <= 2.50:
+        prob = pr["gg"]
+        edge = prob - 1/gg_odds
+        picks.append({"name": "Goal/Goal", "odds": round(gg_odds,2), "prob": round(prob,3),
+            "edge": round(edge,3), "market": "gg"})
+
+    if not picks: return []
+
+    flag_map = {"england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "italy": "🇮🇹", "spain": "🇪🇸", "germany": "🇩🇪",
+                "france": "🇫🇷", "portugal": "🇵🇹", "netherlands": "🇳🇱",
+                "brazil": "🇧🇷", "argentina": "🇦🇷", "usa": "🇺🇸",
+                "turkey": "🇹🇷", "greece": "🇬🇷", "belgium": "🇧🇪"}
+    cf = category.get("flag", "").lower()
+    flag = flag_map.get(cf, "⚽")
+
+    return [{**p,
+        "match": f"{home_name} vs {away_name}",
+        "league": f"{flag} {league_name}",
+        "commence_time": datetime.fromtimestamp(ct, tz=timezone.utc).isoformat(),
+        "probs": pr, "exp_g": exp_g,
+        "home_form": 0.5, "away_form": 0.5,
+        "has_real_stats": has_real,
+        "score": p["edge"]*50 + p["prob"]*30 + (15 if has_real else 0),
     } for p in picks]
 
 # ── Combo ──────────────────────────────────────────────────────────────────────
@@ -352,133 +364,28 @@ def find_best_combo(picks, target, cfg):
             break
     return best
 
-# ── Odds cache nel DB ──────────────────────────────────────────────────────────
-ODDS_CACHE_TTL = 3600 * 2  # 2 ore
-
-def get_odds_from_db(date_str, league_key):
-    with db_lock:
-        conn = get_db()
-        row = conn.execute(
-            "SELECT data, updated_at FROM odds_cache WHERE date=? AND league_key=?",
-            (date_str, league_key)
-        ).fetchone()
-        conn.close()
-    if not row: return None
-    updated = datetime.fromisoformat(row["updated_at"])
-    age = (datetime.now(timezone.utc) - updated).total_seconds()
-    if age > ODDS_CACHE_TTL: return None
-    return json.loads(row["data"])
-
-def save_odds_to_db(date_str, league_key, data):
-    with db_lock:
-        conn = get_db()
-        conn.execute("""
-            INSERT OR REPLACE INTO odds_cache (date, league_key, data, updated_at)
-            VALUES (?,?,?,?)
-        """, (date_str, league_key, json.dumps(data), datetime.now(timezone.utc).isoformat()))
-        conn.commit()
-        conn.close()
-
 # ── Routes ─────────────────────────────────────────────────────────────────────
 @app.route("/health")
 def health():
     with db_lock:
         conn = get_db()
-        stats_count = conn.execute("SELECT COUNT(*) FROM team_stats").fetchone()[0]
-        odds_count  = conn.execute("SELECT COUNT(*) FROM odds_cache").fetchone()[0]
-        last_job    = conn.execute("SELECT * FROM job_log ORDER BY id DESC LIMIT 1").fetchone()
+        stats_count = conn.execute("SELECT COUNT(*) as c FROM sofa_team_stats").fetchone()["c"]
+        events_count = conn.execute("SELECT COUNT(*) as c FROM sofa_events_cache").fetchone()["c"]
         conn.close()
-    return jsonify({
-        "status": "ok",
-        "db_team_stats": stats_count,
-        "db_odds_cache": odds_count,
-        "last_job": dict(last_job) if last_job else None,
-    })
-
-@app.route("/sync", methods=["POST"])
-def sync_stats():
-    """Avvia sync in background — risponde subito senza timeout"""
-    body   = request.get_json() or {}
-    fd_key = (body.get("football_api_key") or "").strip()
-    if not fd_key:
-        return jsonify({"error": "football_api_key mancante"}), 400
-
-    def run_sync():
-        fd_codes = ["PL", "SA", "PD", "BL1", "FL1", "CL", "EL", "PPL", "DED"]
-        results = {}
-        for code in fd_codes:
-            count = sync_league_stats(code, fd_key)
-            results[code] = count
-        with db_lock:
-            conn = get_db()
-            conn.execute("INSERT INTO job_log (job_name, status, message, ran_at) VALUES (?,?,?,?)",
-                ("sync_stats", "ok", str(results), datetime.now(timezone.utc).isoformat()))
-            conn.commit()
-            conn.close()
-
-    # Lancia in background senza bloccare la risposta
-    t = threading.Thread(target=run_sync, daemon=True)
-    t.start()
-
-    return jsonify({"status": "sync avviato in background — controlla /health tra qualche minuto"})
+    return jsonify({"status": "ok", "team_stats_cached": stats_count, "events_cached": events_count})
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    body     = request.get_json() or {}
-    odds_key = (body.get("odds_api_key") or "").strip()
-    fd_key   = (body.get("football_api_key") or "").strip() or None
-    target   = float(body.get("target", 3))
-
-    if not odds_key:
-        return jsonify({"error": "Odds API key mancante"}), 400
+    body   = request.get_json() or {}
+    target = float(body.get("target", 3))
 
     now_utc = datetime.now(timezone.utc)
     italy_offset = 2 if now_utc.month in [4,5,6,7,8,9,10] else 1
     italy_tz = timezone(timedelta(hours=italy_offset))
     now_italy = now_utc.astimezone(italy_tz)
 
-    def fetch_league_odds(league_key, date_str, start_utc, end_utc):
-        # Prima controlla DB cache
-        cached = get_odds_from_db(date_str, league_key)
-        if cached is not None:
-            return cached, True
-
-        # Cache miss — chiama API
-        try:
-            url = f"https://api.the-odds-api.com/v4/sports/{league_key}/odds/?apiKey={odds_key}&regions=eu&markets=totals&oddsFormat=decimal"
-            r = requests.get(url, timeout=8)
-            if not r.ok:
-                try:
-                    err = r.json()
-                    if isinstance(err, dict) and err.get("error_code") == "OUT_OF_USAGE_CREDITS":
-                        return None, "credits"
-                except: pass
-                return [], False
-            events = r.json()
-            if isinstance(events, dict) and events.get("error_code") == "OUT_OF_USAGE_CREDITS":
-                return None, "credits"
-            if not isinstance(events, list): return [], False
-
-            # Filtra per data
-            day_events = []
-            for ev in events:
-                ct = ev.get("commence_time", "")
-                if not ct: continue
-                try:
-                    t = datetime.fromisoformat(ct.replace("Z", "+00:00"))
-                    if start_utc <= t <= end_utc:
-                        day_events.append(ev)
-                except: continue
-
-            if day_events:
-                save_odds_to_db(date_str, league_key, day_events)
-            return day_events, False
-        except:
-            return [], False
-
-    # Cerca oggi → domani → dopodomani
-    # "oggi" = da adesso fino alle 23:59 — sempre, qualunque ora sia
-    all_picks, leagues_found, day_offset, cache_used = [], [], 0, False
+    all_picks = []
+    day_offset = 0
 
     for day_offset in range(3):
         day_dt   = now_italy.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
@@ -486,16 +393,10 @@ def generate():
         start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_italy.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
 
+        events = get_today_events(date_str)
         day_picks = []
-        for lg in LEAGUES:
-            events, source = fetch_league_odds(lg["key"], date_str, start, end)
-            if source == "credits":
-                return jsonify({"error": "OUT_OF_USAGE_CREDITS: Crediti Odds API esauriti!"}), 429
-            if not events: continue
-            if source is True: cache_used = True
-            leagues_found.append(lg["name"])
-            for ev in events:
-                day_picks.extend(analyze_event(ev, lg, fd_key))
+        for ev in events:
+            day_picks.extend(analyze_event(ev, start, end))
 
         if day_picks:
             all_picks = day_picks
@@ -514,7 +415,6 @@ def generate():
 
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
 
-    # Genera multipla per ogni target — pick non ripetuti
     TARGETS = [3, 5, 8, 10, 100]
     multiples = []
     used_matches = set()
@@ -525,8 +425,8 @@ def generate():
         combo = find_best_combo(available, tgt, cfg)
         if combo:
             for p in combo: used_matches.add(p["match"])
-            total_odds  = round(math.prod(p["odds"] for p in combo), 2)
-            combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            total_odds = round(math.prod(p["odds"] for p in combo), 2)
+            combo_prob = round(math.prod(p["prob"] for p in combo) * 100, 1)
             multiples.append({
                 "target": tgt,
                 "total_odds": total_odds,
@@ -538,121 +438,14 @@ def generate():
     if not multiples:
         return jsonify({"error": "Impossibile costruire multipla. Riprova più tardi."}), 404
 
-    # Controlla crediti rimanenti
-    credits_info = {}
-    try:
-        cr = requests.get(
-            f"https://api.the-odds-api.com/v4/sports/?apiKey={odds_key}&all=false",
-            timeout=5
-        )
-        credits_info = {
-            "remaining": cr.headers.get("x-requests-remaining", "?"),
-            "used": cr.headers.get("x-requests-used", "?"),
-            "quota": 500,
-        }
-        try:
-            rem = int(credits_info["remaining"])
-            credits_info["percent_remaining"] = round(rem / 500 * 100)
-        except:
-            credits_info["percent_remaining"] = None
-    except: pass
-
     return jsonify({
         "multiples": multiples,
         "day": day_label,
-        "leagues_with_data": len(set(leagues_found)),
+        "leagues_with_data": len({p["league"] for p in unique}),
         "matches_analyzed": len({p["match"] for p in unique}),
         "value_bets_found": sum(1 for p in unique if p["edge"] > 0.02),
-        "football_api_used": fd_key is not None,
-        "cache_used": cache_used,
-        "credits": credits_info,
+        "source": "sofascore",
     })
-
-@app.route("/credits", methods=["POST"])
-def check_credits():
-    body = request.get_json() or {}
-    odds_key = (body.get("odds_api_key") or "").strip()
-    if not odds_key:
-        return jsonify({"error": "Odds API key mancante"}), 400
-    try:
-        r = requests.get(
-            f"https://api.the-odds-api.com/v4/sports/?apiKey={odds_key}&all=false",
-            timeout=8
-        )
-        remaining = r.headers.get("x-requests-remaining", "?")
-        used      = r.headers.get("x-requests-used", "?")
-        quota     = 500  # piano gratuito
-        try:
-            pct = round(int(remaining) / quota * 100)
-        except:
-            pct = None
-        return jsonify({
-            "remaining": remaining,
-            "used": used,
-            "quota": quota,
-            "percent_remaining": pct,
-            "status": "ok" if r.ok else "error",
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/test-sofa-odds")
-def test_sofa_odds():
-    h = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json",
-        "Referer": "https://www.sofascore.com/",
-    }
-    results = {}
-
-    # Prendi eventi di oggi
-    import datetime
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    r = requests.get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}", headers=h, timeout=10)
-    events = r.json().get("events", [])
-
-    # Prendi primo evento disponibile
-    if events:
-        ev = events[0]
-        ev_id = ev.get("id")
-        home = ev.get("homeTeam", {}).get("name")
-        away = ev.get("awayTeam", {}).get("name")
-        results["sample_event"] = f"{home} vs {away} (id:{ev_id})"
-
-        # Test quote
-        r2 = requests.get(f"https://api.sofascore.com/api/v1/event/{ev_id}/odds/1/all", headers=h, timeout=10)
-        try:
-            odds_data = r2.json()
-            results["odds"] = {"status": r2.status_code, "keys": list(odds_data.keys())[:10], "sample": str(odds_data)[:500]}
-        except:
-            results["odds"] = {"status": r2.status_code, "raw": r2.text[:300]}
-
-        # Test statistiche squadra
-        home_id = ev.get("homeTeam", {}).get("id")
-        tournament_id = ev.get("tournament", {}).get("uniqueTournament", {}).get("id")
-        season_id = ev.get("season", {}).get("id")
-        results["ids"] = {"home_id": home_id, "tournament_id": tournament_id, "season_id": season_id}
-
-        if home_id and tournament_id and season_id:
-            r3 = requests.get(
-                f"https://api.sofascore.com/api/v1/team/{home_id}/unique-tournament/{tournament_id}/season/{season_id}/statistics/overall",
-                headers=h, timeout=10
-            )
-            try:
-                stats = r3.json().get("statistics", {})
-                results["team_stats"] = {
-                    "status": r3.status_code,
-                    "goals_scored": stats.get("goalsScored"),
-                    "goals_conceded": stats.get("goalsConceded"),
-                    "big_chances": stats.get("bigChances"),
-                    "shots_on_target": stats.get("shotsOnTarget"),
-                    "matches": stats.get("matches"),
-                    "all_keys": list(stats.keys())[:20],
-                }
-            except:
-                results["team_stats"] = {"status": r3.status_code, "raw": r3.text[:200]}
-
-    return jsonify(results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
