@@ -179,18 +179,6 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 <!-- BUTTON -->
 <button class="gbtn" id="gbtn" onclick="gen()">⚽ &nbsp;Genera Tutte le Multipla</button>
 
-<!-- CREDITS WIDGET -->
-<div id="creditsBar" style="display:none;background:var(--c1);border:1px solid var(--br);border-radius:12px;padding:11px 16px;margin-bottom:10px;display:none">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-    <span style="font-size:.68rem;font-weight:600;color:var(--mu);letter-spacing:.5px">CREDITI ODDS API</span>
-    <span id="creditsNum" style="font-size:.85rem;font-weight:700;color:var(--g)">—</span>
-  </div>
-  <div style="background:rgba(255,255,255,.05);border-radius:99px;height:5px">
-    <div id="creditsBar2" style="height:5px;border-radius:99px;background:var(--g);transition:width .6s ease;width:0%"></div>
-  </div>
-  <div id="creditsWarn" style="color:var(--re);font-size:.65rem;margin-top:4px;display:none">⚠️ Crediti quasi esauriti!</div>
-</div>
-
 <!-- ERROR -->
 <div class="err-box" id="errBox"><span>⚠️</span><span id="errMsg"></span></div>
 
@@ -212,17 +200,13 @@ const ICON = {3:'🟢',5:'🟡',8:'🟠',10:'🔴',100:'💀'};
 function clr(i,s){document.getElementById(i).value='';document.getElementById(s).classList.remove('show');localStorage.removeItem(i)}
 
 function save(){
-  [['backendUrl','urlSaved'],['oddsKey','odSaved'],['fbKey','fbSaved']].forEach(([id,sid])=>{
-    const v=document.getElementById(id).value.trim().replace(/\/$/,'');
-    if(v){localStorage.setItem(id,v);document.getElementById(sid).classList.add('show')}
-  });
+  const bu=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  if(bu){localStorage.setItem('backendUrl',bu);document.getElementById('urlSaved').classList.add('show')}
 }
 
 window.onload=()=>{
-  [['backendUrl','urlSaved'],['oddsKey','odSaved'],['fbKey','fbSaved']].forEach(([id,sid])=>{
-    const v=localStorage.getItem(id);
-    if(v){document.getElementById(id).value=v;document.getElementById(sid).classList.add('show')}
-  });
+  const bu=localStorage.getItem('backendUrl');
+  if(bu){document.getElementById('backendUrl').value=bu;document.getElementById('urlSaved').classList.add('show')}
 };
 
 function showErr(m){const b=document.getElementById('errBox');b.classList.add('show');document.getElementById('errMsg').textContent=m}
@@ -320,8 +304,6 @@ async function syncStats(){
 
 async function gen(){
   const bu=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
-  const ok=document.getElementById('oddsKey').value.trim();
-  const fk=document.getElementById('fbKey').value.trim();
   if(!bu){showErr('Inserisci il Backend URL di Railway.');return}
   save();hideErr();
   document.getElementById('results').innerHTML='';
@@ -343,17 +325,7 @@ async function gen(){
       showErr(m);btn.disabled=false;btn.innerHTML='⚽ &nbsp;Genera Tutte le Multipla';return;
     }
 
-    // Mostra crediti
-    if(d.credits && d.credits.remaining){
-      const rem=parseInt(d.credits.remaining)||0;
-      const pct=d.credits.percent_remaining||0;
-      document.getElementById('creditsBar').style.display='block';
-      document.getElementById('creditsNum').textContent=rem+' / '+(d.credits.quota||500)+' rimasti';
-      document.getElementById('creditsBar2').style.width=pct+'%';
-      document.getElementById('creditsBar2').style.background=pct>30?'var(--g)':pct>10?'var(--ye)':'var(--re)';
-      document.getElementById('creditsNum').style.color=pct>30?'var(--g)':pct>10?'var(--ye)':'var(--re)';
-      document.getElementById('creditsWarn').style.display=pct<=10?'block':'none';
-    }
+
     document.getElementById('sbar').classList.add('show');
     document.getElementById('sL').textContent=d.leagues_with_data||0;
     document.getElementById('sM').textContent=d.matches_analyzed||0;
