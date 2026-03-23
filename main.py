@@ -36,10 +36,10 @@ REGRESSION_K = 10
 
 TARGET_CONFIG = {
     3:   {"min_picks": 2, "max_picks": 3},
-    5:   {"min_picks": 3, "max_picks": 4},
-    8:   {"min_picks": 4, "max_picks": 5},
-    10:  {"min_picks": 4, "max_picks": 6},
-    100: {"min_picks": 6, "max_picks": 9},
+    5:   {"min_picks": 2, "max_picks": 4},
+    8:   {"min_picks": 3, "max_picks": 5},
+    10:  {"min_picks": 3, "max_picks": 6},
+    100: {"min_picks": 4, "max_picks": 9},
 }
 
 def get_cfg(t):
@@ -203,7 +203,6 @@ def calc_lambda(hs, as_):
     lh = max(0.3, min(4.5, lh))
     la = max(0.3, min(4.5, la))
 
-    # Sanity check: lambda > 3.0 senza shot data → dati corrotti → fallback xG
     hs_has_shots = hs and ((hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0)
     as_has_shots = as_ and ((as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0)
     if (lh > 3.0 or la > 3.0) and not (hs_has_shots or as_has_shots):
@@ -267,16 +266,13 @@ def get_team_stats(team_id, t_id, s_id):
     gs       = st.get("goalsScored") or 0
     gc       = st.get("goalsConceded") or 0
 
-    # ── FIX CRITICO ───────────────────────────────────────────────────────────
-    # SofaScore per leghe basse (Scottish L2, ecc.) restituisce matches_home=0.
-    # Con max(0,1)=1 → goals_home/1 invece di goals_home/14 → att_h gonfiato 14x
-    # → lambda clampato a 4.5 per tutte → Gol attesi = 4.5+4.5 = 9
-    # → tutte le squadre della lega con statistiche identiche.
+    # FIX CRITICO: SofaScore per leghe basse restituisce matches_home=0
+    # → max(0,1)=1 → goals_home/1 invece di goals_home/14 → lambda esplode a 9
     mh_raw = st_h_raw.get("matches") or 0
     ma_raw = st_a_raw.get("matches") or 0
-    st_h   = st_h_raw if mh_raw >= 3 else {}   # invalida dati home se non affidabili
-    st_a   = st_a_raw if ma_raw >= 3 else {}   # invalida dati away se non affidabili
-    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)  # stima m//2 come fallback
+    st_h   = st_h_raw if mh_raw >= 3 else {}
+    st_a   = st_a_raw if ma_raw >= 3 else {}
+    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)
     ma     = ma_raw if ma_raw >= 3 else max(m // 2, 1)
     if mh_raw < 3:
         log.debug(f"Team {team_id}: matches_home={mh_raw} insufficienti, fallback mh={mh}")
@@ -421,7 +417,6 @@ def analyze_event(ev, start_utc, end_utc):
         picks.append({"name": "Over 2.5", "odds": round(o25, 2), "prob": round(prob, 3),
                       "edge": round(prob - 1/o25, 3), "market": "over25"})
 
-    # GG: solo quota reale di mercato
     gg_odds = odds_data.get("Yes") or odds_data.get("GG")
     if gg_odds and 1.40 <= gg_odds <= 2.50:
         prob = pr["gg"]
@@ -430,12 +425,11 @@ def analyze_event(ev, start_utc, end_utc):
 
     if not picks: return []
 
-    # Qualità dato: bassa se shot_data assenti (leghe basse senza stats SofaScore)
     has_shots_h  = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
     has_shots_a  = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
     data_quality = "high" if (has_shots_h and has_shots_a) else "medium" if (has_shots_h or has_shots_a) else "low"
     if data_quality == "low":
-        log.info(f"[LOW QUALITY] {hn} vs {an} — nessun shot data, lambda da soli gol/forma")
+        log.info(f"[LOW QUALITY] {hn} vs {an} — nessun shot data")
 
     base = {
         "match": f"{hn} vs {an}", "league": f"{flag} {lg}",
@@ -448,9 +442,8 @@ def analyze_event(ev, start_utc, end_utc):
     }
     return [{**base, **p, "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15} for p in picks]
 
-# ── Combo builder ibrido ───────────────────────────────────────────────────────
+# ── Combo builder ──────────────────────────────────────────────────────────────
 def greedy_combo(picks, target, cfg):
-    """Greedy beam search per target > 10x."""
     log_target = math.log(max(target, 1.01))
     candidates = sorted(picks, key=lambda p: p["score"], reverse=True)[:30]
     beam = [[p] for p in candidates[:10]]
@@ -486,7 +479,6 @@ def greedy_combo(picks, target, cfg):
     return max(valid, key=lambda c: math.prod(p["prob"] for p in c)) if valid else []
 
 def find_best_combo(picks, target, cfg):
-    """Brute-force per target <= 10, greedy beam search per target > 10."""
     log_target = math.log(max(target, 1.01))
     for min_edge in [0.03, 0.01, 0.0, -0.05]:
         f = [p for p in picks if p["edge"] >= min_edge]
@@ -528,9 +520,24 @@ def health():
             conn.close()
     return jsonify({"status": "ok", "team_stats_cached": sc, "events_cached": ec, "requests_logged": rl})
 
+@app.route("/reset-cache", methods=["POST"])
+def reset_cache():
+    with db_lock:
+        conn = get_db()
+        try:
+            conn.executescript("""
+                DELETE FROM sofa_team_stats;
+                DELETE FROM sofa_events_cache;
+                DELETE FROM sofa_match_stats;
+            """)
+            conn.commit()
+        finally:
+            conn.close()
+    log.info("Cache DB svuotata via /reset-cache")
+    return jsonify({"status": "ok", "message": "Cache svuotata. Prossima chiamata a /generate ricalcola tutto."})
+
 @app.route("/picks")
 def picks_debug():
-    """Debug: tutti i pick disponibili per una data senza costruire multiple."""
     date_str = request.args.get("date") or datetime.now(ITALY_TZ).strftime("%Y-%m-%d")
     try:
         day_dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ITALY_TZ)
@@ -597,15 +604,13 @@ def generate():
         k = f"{p['match']}|{p['name']}"
         if k not in seen: seen.add(k); unique.append(p)
 
-    day_label  = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
-    multiples, used = [], set()
+    day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
+    multiples = []
 
     for tgt in [3, 5, 8, 10, 100]:
         cfg   = get_cfg(tgt)
-        avail = [p for p in unique if p["match"] not in used] or unique
-        combo = find_best_combo(avail, tgt, cfg)
+        combo = find_best_combo(unique, tgt, cfg)
         if combo:
-            for p in combo: used.add(p["match"])
             multiples.append({
                 "target": tgt,
                 "total_odds": round(math.prod(p["odds"] for p in combo), 2),
@@ -613,7 +618,7 @@ def generate():
                 "picks": combo,
                 "value_in_combo": sum(1 for p in combo if p["edge"] > 0.02),
             })
-            log.info(f"Multipla {tgt}x: {len(combo)} pick, quota {round(math.prod(p['odds'] for p in combo),2)}")
+            log.info(f"Multipla x{tgt}: {len(combo)} pick, quota {round(math.prod(p['odds'] for p in combo),2)}")
 
     if not multiples:
         return jsonify({"error": "Impossibile costruire multipla."}), 404
