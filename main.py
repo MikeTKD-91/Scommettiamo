@@ -535,6 +535,25 @@ def generate():
     if not multiples:
         return jsonify({"error": "Impossibile costruire multipla. Riprova più tardi."}), 404
 
+    # Controlla crediti rimanenti
+    credits_info = {}
+    try:
+        cr = requests.get(
+            f"https://api.the-odds-api.com/v4/sports/?apiKey={odds_key}&all=false",
+            timeout=5
+        )
+        credits_info = {
+            "remaining": cr.headers.get("x-requests-remaining", "?"),
+            "used": cr.headers.get("x-requests-used", "?"),
+            "quota": 500,
+        }
+        try:
+            rem = int(credits_info["remaining"])
+            credits_info["percent_remaining"] = round(rem / 500 * 100)
+        except:
+            credits_info["percent_remaining"] = None
+    except: pass
+
     return jsonify({
         "multiples": multiples,
         "day": day_label,
@@ -543,7 +562,36 @@ def generate():
         "value_bets_found": sum(1 for p in unique if p["edge"] > 0.02),
         "football_api_used": fd_key is not None,
         "cache_used": cache_used,
+        "credits": credits_info,
     })
+
+@app.route("/credits", methods=["POST"])
+def check_credits():
+    body = request.get_json() or {}
+    odds_key = (body.get("odds_api_key") or "").strip()
+    if not odds_key:
+        return jsonify({"error": "Odds API key mancante"}), 400
+    try:
+        r = requests.get(
+            f"https://api.the-odds-api.com/v4/sports/?apiKey={odds_key}&all=false",
+            timeout=8
+        )
+        remaining = r.headers.get("x-requests-remaining", "?")
+        used      = r.headers.get("x-requests-used", "?")
+        quota     = 500  # piano gratuito
+        try:
+            pct = round(int(remaining) / quota * 100)
+        except:
+            pct = None
+        return jsonify({
+            "remaining": remaining,
+            "used": used,
+            "quota": quota,
+            "percent_remaining": pct,
+            "status": "ok" if r.ok else "error",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
