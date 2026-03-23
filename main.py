@@ -596,5 +596,63 @@ def check_credits():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/test-sofa-odds")
+def test_sofa_odds():
+    h = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Referer": "https://www.sofascore.com/",
+    }
+    results = {}
+
+    # Prendi eventi di oggi
+    import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    r = requests.get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{today}", headers=h, timeout=10)
+    events = r.json().get("events", [])
+
+    # Prendi primo evento disponibile
+    if events:
+        ev = events[0]
+        ev_id = ev.get("id")
+        home = ev.get("homeTeam", {}).get("name")
+        away = ev.get("awayTeam", {}).get("name")
+        results["sample_event"] = f"{home} vs {away} (id:{ev_id})"
+
+        # Test quote
+        r2 = requests.get(f"https://api.sofascore.com/api/v1/event/{ev_id}/odds/1/all", headers=h, timeout=10)
+        try:
+            odds_data = r2.json()
+            results["odds"] = {"status": r2.status_code, "keys": list(odds_data.keys())[:10], "sample": str(odds_data)[:500]}
+        except:
+            results["odds"] = {"status": r2.status_code, "raw": r2.text[:300]}
+
+        # Test statistiche squadra
+        home_id = ev.get("homeTeam", {}).get("id")
+        tournament_id = ev.get("tournament", {}).get("uniqueTournament", {}).get("id")
+        season_id = ev.get("season", {}).get("id")
+        results["ids"] = {"home_id": home_id, "tournament_id": tournament_id, "season_id": season_id}
+
+        if home_id and tournament_id and season_id:
+            r3 = requests.get(
+                f"https://api.sofascore.com/api/v1/team/{home_id}/unique-tournament/{tournament_id}/season/{season_id}/statistics/overall",
+                headers=h, timeout=10
+            )
+            try:
+                stats = r3.json().get("statistics", {})
+                results["team_stats"] = {
+                    "status": r3.status_code,
+                    "goals_scored": stats.get("goalsScored"),
+                    "goals_conceded": stats.get("goalsConceded"),
+                    "big_chances": stats.get("bigChances"),
+                    "shots_on_target": stats.get("shotsOnTarget"),
+                    "matches": stats.get("matches"),
+                    "all_keys": list(stats.keys())[:20],
+                }
+            except:
+                results["team_stats"] = {"status": r3.status_code, "raw": r3.text[:200]}
+
+    return jsonify(results)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
