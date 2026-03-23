@@ -200,7 +200,19 @@ def calc_lambda(hs, as_):
     lh    *= 0.80 + exp_form(hs) * 0.40
     la    *= 0.80 + exp_form(as_) * 0.40
 
-    return max(0.3, min(4.5, lh)), max(0.3, min(4.5, la))
+    lh = max(0.3, min(4.5, lh))
+    la = max(0.3, min(4.5, la))
+
+    # Sanity check: se lambda > 3.5 con shot_data assenti, i gol reali sono corrotti.
+    # Fallback a xG puro (piÃ¹ robusto con dati scarsi).
+    hs_has_shots = hs and ((hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0)
+    as_has_shots = as_ and ((as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0)
+    if (lh > 3.0 or la > 3.0) and not (hs_has_shots or as_has_shots):
+        log.warning(f"Lambda sospetto (lh={lh:.2f}, la={la:.2f}) con shot_data assenti â€” fallback xG")
+        lh = max(0.3, min(3.0, lh_xg * (0.80 + exp_form(hs) * 0.40)))
+        la = max(0.3, min(3.0, la_xg * (0.80 + exp_form(as_) * 0.40)))
+
+    return lh, la
 
 # â”€â”€ SofaScore fetchers con retry + backoff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def sofa_get(url, timeout=8, retries=2):
@@ -256,20 +268,31 @@ def get_team_stats(team_id, t_id, s_id):
     m    = max(st.get("matches") or 1, 1)
     data_h = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{t_id}/season/{s_id}/statistics/home")
     data_a = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{t_id}/season/{s_id}/statistics/away")
-    st_h = (data_h or {}).get("statistics", {})
-    st_a = (data_a or {}).get("statistics", {})
-    mh   = max(st_h.get("matches") or 0, 1)
-    ma   = max(st_a.get("matches") or 0, 1)
-    gs   = st.get("goalsScored") or 0
-    gc   = st.get("goalsConceded") or 0
+    st_h_raw = (data_h or {}).get("statistics", {})
+    st_a_raw = (data_a or {}).get("statistics", {})
+    gs       = st.get("goalsScored") or 0
+    gc       = st.get("goalsConceded") or 0
+
+    # FIX CRITICO: SofaScore per leghe basse (es. Scottish L2) restituisce
+    # matches_home=0. Con max(0,1)=1 â†’ goals_home/1 invece di goals_home/14
+    # â†’ att_h gonfiato 14x â†’ lambda clampato a 4.5 â†’ Gol attesi = 9 (4.5+4.5)
+    # â†’ entrambe le squadre della stessa lega â†’ statistiche identiche.
+    mh_raw = st_h_raw.get("matches") or 0
+    ma_raw = st_a_raw.get("matches") or 0
+    st_h   = st_h_raw if mh_raw >= 3 else {}   # dati home non affidabili se < 3
+    st_a   = st_a_raw if ma_raw >= 3 else {}   # dati away non affidabili se < 3
+    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)
+    ma     = ma_raw if ma_raw >= 3 else max(m // 2, 1)
+    if mh_raw < 3:
+        log.debug(f"Team {team_id}: matches_home={mh_raw} insufficienti, fallback mh={mh}")
 
     rec = {
         "team_id": team_id, "tournament_id": t_id, "season_id": s_id,
         "goals_scored": gs, "goals_conceded": gc,
-        "goals_home": st_h.get("goalsScored") or gs // 2,
-        "goals_away": st_a.get("goalsScored") or gs // 2,
-        "conceded_home": st_h.get("goalsConceded") or gc // 2,
-        "conceded_away": st_a.get("goalsConceded") or gc // 2,
+        "goals_home": st_h.get("goalsScored") if st_h else gs // 2,
+        "goals_away": st_a.get("goalsScored") if st_a else gs // 2,
+        "conceded_home": st_h.get("goalsConceded") if st_h else gc // 2,
+        "conceded_away": st_a.get("goalsConceded") if st_a else gc // 2,
         "matches": m, "matches_home": mh, "matches_away": ma,
         "big_chances": st.get("bigChances") or 0,
         "shots_on_target": st.get("shotsOnTarget") or 0,
@@ -351,7 +374,7 @@ FLAG_MAP = {
     "england": "ðŸ´ó §ó ¢ó ¥ó ®ó §ó ¿", "italy": "ðŸ‡®ðŸ‡¹", "spain": "ðŸ‡ªðŸ‡¸", "germany": "ðŸ‡©ðŸ‡ª",
     "france": "ðŸ‡«ðŸ‡·", "portugal": "ðŸ‡µðŸ‡¹", "netherlands": "ðŸ‡³ðŸ‡±", "brazil": "ðŸ‡§ðŸ‡·",
     "argentina": "ðŸ‡¦ðŸ‡·", "usa": "ðŸ‡ºðŸ‡¸", "turkey": "ðŸ‡¹ðŸ‡·", "greece": "ðŸ‡¬ðŸ‡·",
-    "belgium": "ðŸ‡§ðŸ‡ª", "scotland": "ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿", "austria": "ðŸ‡¦ðŸ‡¹",
+    "belgium": "ðŸ‡§ðŸ‡ª", "scotland": "ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿ SCO", "austria": "ðŸ‡¦ðŸ‡¹",
     "switzerland": "ðŸ‡¨ðŸ‡­", "mexico": "ðŸ‡²ðŸ‡½", "japan": "ðŸ‡¯ðŸ‡µ", "south-korea": "ðŸ‡°ðŸ‡·",
 }
 
@@ -412,6 +435,13 @@ def analyze_event(ev, start_utc, end_utc):
 
     if not picks: return []
 
+    # QualitÃ  dato: bassa se shot_data assenti (leghe basse senza stats SofaScore)
+    has_shots_h = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
+    has_shots_a = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
+    data_quality = "high" if (has_shots_h and has_shots_a) else "medium" if (has_shots_h or has_shots_a) else "low"
+    if data_quality == "low":
+        log.info(f"[LOW QUALITY] {hn} vs {an} â€” nessun dato shot, lambda basato su soli gol/forma")
+
     base = {
         "match": f"{hn} vs {an}", "league": f"{flag} {lg}",
         "commence_time": ev_time.isoformat(),
@@ -419,6 +449,7 @@ def analyze_event(ev, start_utc, end_utc):
         "lambda_home": round(lh, 3), "lambda_away": round(la, 3),
         "home_form": fh, "away_form": fa,
         "has_real_stats": True, "hist_over25": hist_conf,
+        "data_quality": data_quality,
     }
     return [{**base, **p, "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15} for p in picks]
 
