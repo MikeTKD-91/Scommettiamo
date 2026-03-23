@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 
-# â”€â”€ Logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -47,7 +47,7 @@ def get_cfg(t):
         if t <= k: return TARGET_CONFIG[k]
     return TARGET_CONFIG[100]
 
-# â”€â”€ Timing decorator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Timing decorator ───────────────────────────────────────────────────────────
 def timed(fn):
     @wraps(fn)
     def wrapper(*a, **kw):
@@ -57,7 +57,7 @@ def timed(fn):
         return result
     return wrapper
 
-# â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Database ───────────────────────────────────────────────────────────────────
 def get_db():
     c = sqlite3.connect(DB_PATH, check_same_thread=False)
     c.row_factory = sqlite3.Row
@@ -103,7 +103,7 @@ def init_db():
 
 init_db()
 
-# â”€â”€ Poisson + Dixon-Coles (matrice normalizzata) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Poisson + Dixon-Coles (matrice normalizzata) ───────────────────────────────
 def dc_tau(x, y, lh, la, rho=-0.13):
     if x == 0 and y == 0: return max(0.001, 1 - lh * la * rho)
     if x == 0 and y == 1: return max(0.001, 1 + lh * rho)
@@ -132,7 +132,7 @@ def calc_probs(lh, la):
             if h > 0 and a > 0: gg += p
     return {"over15": min(o15, .99), "over25": min(o25, .99), "gg": min(gg, .99)}
 
-# â”€â”€ Modelli statistici â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Modelli statistici ─────────────────────────────────────────────────────────
 def regress(observed, avg, n, k=REGRESSION_K):
     return (n * observed + k * avg) / (n + k)
 
@@ -193,34 +193,28 @@ def calc_lambda(hs, as_):
     lh_xg = calc_xg(hs) * (calc_xga(as_) / avg if as_ else 1.0)
     la_xg = calc_xg(as_) * (calc_xga(hs) / avg if hs else 1.0)
 
-    n      = min((hs.get("matches") or 0) + (as_.get("matches") or 0) if hs and as_ else 0, 60)
-    w_g    = min(n / 40, 0.70)
-    lh     = lh_g * w_g + lh_xg * (1 - w_g)
-    la     = la_g * w_g + la_xg * (1 - w_g)
-    lh    *= 0.80 + exp_form(hs) * 0.40
-    la    *= 0.80 + exp_form(as_) * 0.40
+    n   = min((hs.get("matches") or 0) + (as_.get("matches") or 0) if hs and as_ else 0, 60)
+    w_g = min(n / 40, 0.70)
+    lh  = lh_g * w_g + lh_xg * (1 - w_g)
+    la  = la_g * w_g + la_xg * (1 - w_g)
+    lh *= 0.80 + exp_form(hs) * 0.40
+    la *= 0.80 + exp_form(as_) * 0.40
 
     lh = max(0.3, min(4.5, lh))
     la = max(0.3, min(4.5, la))
 
-    # Sanity check: se lambda > 3.5 con shot_data assenti, i gol reali sono corrotti.
-    # Fallback a xG puro (piÃ¹ robusto con dati scarsi).
+    # Sanity check: lambda > 3.0 senza shot data → dati corrotti → fallback xG
     hs_has_shots = hs and ((hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0)
     as_has_shots = as_ and ((as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0)
     if (lh > 3.0 or la > 3.0) and not (hs_has_shots or as_has_shots):
-        log.warning(f"Lambda sospetto (lh={lh:.2f}, la={la:.2f}) con shot_data assenti â€” fallback xG")
+        log.warning(f"Lambda sospetto (lh={lh:.2f}, la={la:.2f}) con shot_data assenti — fallback xG")
         lh = max(0.3, min(3.0, lh_xg * (0.80 + exp_form(hs) * 0.40)))
         la = max(0.3, min(3.0, la_xg * (0.80 + exp_form(as_) * 0.40)))
 
     return lh, la
 
-# â”€â”€ SofaScore fetchers con retry + backoff â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── SofaScore fetchers con retry + backoff ─────────────────────────────────────
 def sofa_get(url, timeout=8, retries=2):
-    """
-    Retry con backoff esponenziale.
-    retries=2 â†’ 3 tentativi totali (1 + 2 retry).
-    Attese: 1s, 2s (raddoppia ad ogni tentativo).
-    """
     for attempt in range(retries + 1):
         try:
             r = requests.get(url, headers=SOFA_HEADERS, timeout=timeout)
@@ -228,13 +222,13 @@ def sofa_get(url, timeout=8, retries=2):
                 return r.json()
             if r.status_code == 429:
                 wait = 2 ** attempt
-                log.warning(f"Rate limit SofaScore (429), attendo {wait}s â€” {url}")
+                log.warning(f"Rate limit SofaScore (429), attendo {wait}s — {url}")
                 time.sleep(wait)
             else:
-                log.debug(f"SofaScore HTTP {r.status_code} â€” {url}")
-                break  # 4xx non recoverable (tranne 429)
+                log.debug(f"SofaScore HTTP {r.status_code} — {url}")
+                break
         except requests.Timeout:
-            log.warning(f"Timeout tentativo {attempt+1}/{retries+1} â€” {url}")
+            log.warning(f"Timeout tentativo {attempt+1}/{retries+1} — {url}")
             if attempt < retries: time.sleep(1.5 ** attempt)
         except Exception as e:
             log.error(f"Errore fetch {url}: {e}")
@@ -273,15 +267,16 @@ def get_team_stats(team_id, t_id, s_id):
     gs       = st.get("goalsScored") or 0
     gc       = st.get("goalsConceded") or 0
 
-    # FIX CRITICO: SofaScore per leghe basse (es. Scottish L2) restituisce
-    # matches_home=0. Con max(0,1)=1 â†’ goals_home/1 invece di goals_home/14
-    # â†’ att_h gonfiato 14x â†’ lambda clampato a 4.5 â†’ Gol attesi = 9 (4.5+4.5)
-    # â†’ entrambe le squadre della stessa lega â†’ statistiche identiche.
+    # ── FIX CRITICO ───────────────────────────────────────────────────────────
+    # SofaScore per leghe basse (Scottish L2, ecc.) restituisce matches_home=0.
+    # Con max(0,1)=1 → goals_home/1 invece di goals_home/14 → att_h gonfiato 14x
+    # → lambda clampato a 4.5 per tutte → Gol attesi = 4.5+4.5 = 9
+    # → tutte le squadre della lega con statistiche identiche.
     mh_raw = st_h_raw.get("matches") or 0
     ma_raw = st_a_raw.get("matches") or 0
-    st_h   = st_h_raw if mh_raw >= 3 else {}   # dati home non affidabili se < 3
-    st_a   = st_a_raw if ma_raw >= 3 else {}   # dati away non affidabili se < 3
-    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)
+    st_h   = st_h_raw if mh_raw >= 3 else {}   # invalida dati home se non affidabili
+    st_a   = st_a_raw if ma_raw >= 3 else {}   # invalida dati away se non affidabili
+    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)  # stima m//2 come fallback
     ma     = ma_raw if ma_raw >= 3 else max(m // 2, 1)
     if mh_raw < 3:
         log.debug(f"Team {team_id}: matches_home={mh_raw} insufficienti, fallback mh={mh}")
@@ -371,11 +366,11 @@ def get_today_events(date_str):
     return events
 
 FLAG_MAP = {
-    "england": "ðŸ´ó §ó ¢ó ¥ó ®ó §ó ¿", "italy": "ðŸ‡®ðŸ‡¹", "spain": "ðŸ‡ªðŸ‡¸", "germany": "ðŸ‡©ðŸ‡ª",
-    "france": "ðŸ‡«ðŸ‡·", "portugal": "ðŸ‡µðŸ‡¹", "netherlands": "ðŸ‡³ðŸ‡±", "brazil": "ðŸ‡§ðŸ‡·",
-    "argentina": "ðŸ‡¦ðŸ‡·", "usa": "ðŸ‡ºðŸ‡¸", "turkey": "ðŸ‡¹ðŸ‡·", "greece": "ðŸ‡¬ðŸ‡·",
-    "belgium": "ðŸ‡§ðŸ‡ª", "scotland": "ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿ SCO", "austria": "ðŸ‡¦ðŸ‡¹",
-    "switzerland": "ðŸ‡¨ðŸ‡­", "mexico": "ðŸ‡²ðŸ‡½", "japan": "ðŸ‡¯ðŸ‡µ", "south-korea": "ðŸ‡°ðŸ‡·",
+    "england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "italy": "🇮🇹", "spain": "🇪🇸", "germany": "🇩🇪",
+    "france": "🇫🇷", "portugal": "🇵🇹", "netherlands": "🇳🇱", "brazil": "🇧🇷",
+    "argentina": "🇦🇷", "usa": "🇺🇸", "turkey": "🇹🇷", "greece": "🇬🇷",
+    "belgium": "🇧🇪", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿 SCO", "austria": "🇦🇹",
+    "switzerland": "🇨🇭", "mexico": "🇲🇽", "japan": "🇯🇵", "south-korea": "🇰🇷",
 }
 
 def analyze_event(ev, start_utc, end_utc):
@@ -394,7 +389,7 @@ def analyze_event(ev, start_utc, end_utc):
     ut    = tourn.get("uniqueTournament", {})
     t_id  = ut.get("id"); s_id = ev.get("season", {}).get("id")
     lg    = tourn.get("name", "")
-    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "âš½")
+    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "⚽")
 
     hs  = get_team_stats(hid, t_id, s_id)
     as_ = get_team_stats(aid, t_id, s_id)
@@ -402,10 +397,10 @@ def analyze_event(ev, start_utc, end_utc):
         log.debug(f"Skip {hn} vs {an}: nessun dato squadre")
         return []
 
-    lh, la = calc_lambda(hs, as_)
-    pr     = calc_probs(lh, la)
-    fh     = round(exp_form(hs), 2)
-    fa     = round(exp_form(as_), 2)
+    lh, la    = calc_lambda(hs, as_)
+    pr        = calc_probs(lh, la)
+    fh        = round(exp_form(hs), 2)
+    fa        = round(exp_form(as_), 2)
     odds_data = get_event_odds(eid)
 
     hist_o25_h = historical_over(hs, "25")
@@ -435,12 +430,12 @@ def analyze_event(ev, start_utc, end_utc):
 
     if not picks: return []
 
-    # QualitÃ  dato: bassa se shot_data assenti (leghe basse senza stats SofaScore)
-    has_shots_h = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
-    has_shots_a = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
+    # Qualità dato: bassa se shot_data assenti (leghe basse senza stats SofaScore)
+    has_shots_h  = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
+    has_shots_a  = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
     data_quality = "high" if (has_shots_h and has_shots_a) else "medium" if (has_shots_h or has_shots_a) else "low"
     if data_quality == "low":
-        log.info(f"[LOW QUALITY] {hn} vs {an} â€” nessun dato shot, lambda basato su soli gol/forma")
+        log.info(f"[LOW QUALITY] {hn} vs {an} — nessun shot data, lambda da soli gol/forma")
 
     base = {
         "match": f"{hn} vs {an}", "league": f"{flag} {lg}",
@@ -453,23 +448,18 @@ def analyze_event(ev, start_utc, end_utc):
     }
     return [{**base, **p, "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15} for p in picks]
 
-# â”€â”€ Combo builder ibrido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Combo builder ibrido ───────────────────────────────────────────────────────
 def greedy_combo(picks, target, cfg):
-    """
-    Greedy beam search per target alti (>10).
-    Parte dal pick migliore e aggiunge iterativamente quello
-    che avvicina di piÃ¹ la quota al target minimizzando la distanza log.
-    Molto piÃ¹ veloce del brute-force per cfg["max_picks"] >= 6.
-    """
+    """Greedy beam search per target > 10x."""
     log_target = math.log(max(target, 1.01))
     candidates = sorted(picks, key=lambda p: p["score"], reverse=True)[:30]
-    beam = [[p] for p in candidates[:10]]  # 10 semi iniziali
+    beam = [[p] for p in candidates[:10]]
 
     for _ in range(cfg["max_picks"] - 1):
         new_beam = []
         for current in beam:
-            current_log = sum(math.log(p["odds"]) for p in current)
-            remaining   = log_target - current_log
+            current_log     = sum(math.log(p["odds"]) for p in current)
+            remaining       = log_target - current_log
             if remaining <= 0: continue
             current_matches = {p["match"] for p in current}
             for cand in candidates:
@@ -485,7 +475,7 @@ def greedy_combo(picks, target, cfg):
             math.prod(p["prob"] for p in c) * 70
             + sum(p["edge"] for p in c) * 15
             - abs(sum(math.log(p["odds"]) for p in c) - log_target) * 15
-        ), reverse=True)[:15]  # mantieni top-15
+        ), reverse=True)[:15]
 
     valid = [
         c for c in beam
@@ -493,21 +483,15 @@ def greedy_combo(picks, target, cfg):
         and len({p["match"] for p in c}) == len(c)
         and target * 0.55 <= math.prod(p["odds"] for p in c) <= target * 1.55
     ]
-    if not valid: return []
-    return max(valid, key=lambda c: math.prod(p["prob"] for p in c))
+    return max(valid, key=lambda c: math.prod(p["prob"] for p in c)) if valid else []
 
 def find_best_combo(picks, target, cfg):
-    """
-    Brute-force per target piccoli (<=10, max_picks<=6).
-    Greedy beam search per target grandi (100x).
-    """
+    """Brute-force per target <= 10, greedy beam search per target > 10."""
     log_target = math.log(max(target, 1.01))
     for min_edge in [0.03, 0.01, 0.0, -0.05]:
         f = [p for p in picks if p["edge"] >= min_edge]
         if len(f) >= cfg["min_picks"]: break
     if len(f) < cfg["min_picks"]: f = picks
-
-    # Pre-filtro quota singola incompatibile
     f = [p for p in f if math.log(p["odds"]) < log_target * 1.2]
 
     if target > 10:
@@ -531,7 +515,7 @@ def find_best_combo(picks, target, cfg):
             break
     return best
 
-# â”€â”€ Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Routes ─────────────────────────────────────────────────────────────────────
 @app.route("/health")
 def health():
     with db_lock:
@@ -546,19 +530,15 @@ def health():
 
 @app.route("/picks")
 def picks_debug():
-    """
-    Endpoint di debug: restituisce tutti i pick disponibili per una data
-    senza costruire multiple. Utile per ispezionare lambda, prob, edge.
-    Query param: ?date=YYYY-MM-DD (default: oggi)
-    """
+    """Debug: tutti i pick disponibili per una data senza costruire multiple."""
     date_str = request.args.get("date") or datetime.now(ITALY_TZ).strftime("%Y-%m-%d")
     try:
         day_dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ITALY_TZ)
     except ValueError:
         return jsonify({"error": "Formato data non valido. Usa YYYY-MM-DD"}), 400
 
-    start = day_dt.astimezone(timezone.utc)
-    end   = (day_dt.replace(hour=23, minute=59, second=59)).astimezone(timezone.utc)
+    start  = day_dt.astimezone(timezone.utc)
+    end    = day_dt.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
     events = get_today_events(date_str)
 
     all_picks = []
@@ -578,15 +558,15 @@ def picks_debug():
         "date": date_str,
         "total_picks": len(unique),
         "value_bets": sum(1 for p in unique if p["edge"] > 0.02),
-        "picks": unique[:50],  # max 50 nel debug
+        "picks": unique[:50],
     })
 
 @app.route("/generate", methods=["POST"])
 @timed
 def generate():
-    t0       = time.perf_counter()
-    now_utc  = datetime.now(timezone.utc)
-    now_it   = now_utc.astimezone(ITALY_TZ)
+    t0      = time.perf_counter()
+    now_utc = datetime.now(timezone.utc)
+    now_it  = now_utc.astimezone(ITALY_TZ)
 
     all_picks, day_offset = [], 0
     for day_offset in range(3):
