@@ -8,8 +8,8 @@
 <style>
 :root{
   --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.1);--glow:rgba(0,230,118,.25);
-  --bg:#070b12;--c1:#0d1421;--c2:#0a1019;--c3:#111827;
-  --br:rgba(255,255,255,.06);--br2:rgba(255,255,255,.1);
+  --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
+  --br:rgba(255,255,255,.06);
   --tx:#f1f5ff;--mu:#6b7fa3;--m2:#3d4e6b;
   --ye:#fbbf24;--re:#f43f5e;--or:#f97316;--pu:#a78bfa;--bl:#38bdf8;
 }
@@ -23,7 +23,6 @@ body::before{content:'';position:fixed;inset:0;
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes barIn{from{width:0}to{width:var(--w)}}
 .page{position:relative;z-index:1;padding:20px 16px 80px;display:flex;justify-content:center}
 .wrap{width:100%;max-width:460px}
 .hdr{padding:16px 0 24px;text-align:center}
@@ -34,35 +33,34 @@ body::before{content:'';position:fixed;inset:0;
 .hdr-sub{color:var(--mu);font-size:.75rem;font-weight:400}
 .card{background:var(--c1);border:1px solid var(--br);border-radius:18px;padding:18px;margin-bottom:10px}
 .field-label{color:var(--mu);font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
-.field-wrap{display:flex;gap:6px;margin-bottom:4px}
-input[type=password],input[type=text]{
-  flex:1;background:var(--c2);border:1px solid var(--br);border-radius:12px;
+input[type=text]{
+  width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;
   padding:11px 13px;color:var(--tx);font-size:.82rem;outline:none;
   font-family:'Outfit',monospace;transition:all .2s;
 }
 input::placeholder{color:var(--m2)}
 input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
-.xbtn{background:transparent;border:1px solid var(--br);color:var(--mu);border-radius:12px;padding:0 11px;cursor:pointer;font-size:12px;transition:all .2s;flex-shrink:0}
-.xbtn:active{color:var(--re)}
-.saved-tag{color:var(--g);font-size:.65rem;font-weight:600;display:none;align-items:center;gap:3px}
+.saved-tag{color:var(--g);font-size:.65rem;font-weight:600;display:none;align-items:center;gap:3px;margin-top:5px}
 .saved-tag.show{display:inline-flex}
 .field-hint{color:var(--m2);font-size:.65rem;margin-top:8px;line-height:1.6}
-.field-hint a{color:var(--g);text-decoration:none;font-weight:500}
-.divider{height:1px;background:var(--br);margin:14px 0}
+.field-hint a{color:var(--g);text-decoration:none}
 .gbtn{
   width:100%;background:var(--g);border:none;border-radius:14px;
   padding:16px;color:#000;font-weight:700;font-size:.95rem;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-bottom:12px;font-family:'Outfit',sans-serif;letter-spacing:.3px;
-  transition:all .2s;position:relative;overflow:hidden;
+  margin-bottom:10px;font-family:'Outfit',sans-serif;
+  transition:all .2s;
 }
-.gbtn:hover:not(:disabled){background:var(--gd);box-shadow:0 8px 24px var(--glow);transform:translateY(-1px)}
-.gbtn:active{transform:translateY(1px);box-shadow:none}
-.gbtn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.gbtn:disabled{opacity:.45;cursor:not-allowed}
+.rbtn{
+  width:100%;background:transparent;border:1px solid rgba(244,63,94,.25);border-radius:12px;
+  padding:10px;color:#fb7185;font-weight:600;font-size:.75rem;
+  cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:10px;transition:all .2s;
+}
 .spin{width:15px;height:15px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite}
-.err-box{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:13px 15px;color:#fb7185;font-size:.8rem;margin-bottom:12px;display:none;gap:8px;animation:up .3s ease}
-.err-box.show{display:flex}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px;display:none}
+.err{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:13px 15px;color:#fb7185;font-size:.8rem;margin-bottom:12px;display:none;gap:8px}
+.err.show{display:flex}
+.stats{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
 .stats.show{display:grid}
 .stat-card{background:var(--c1);border:1px solid var(--br);border-radius:14px;padding:12px 8px;text-align:center}
 .stat-n{font-size:1.7rem;font-weight:800;color:var(--g);line-height:1}
@@ -71,26 +69,22 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 .day-banner::before,.day-banner::after{content:'';flex:1;height:1px;background:var(--br)}
 .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{
-  flex-shrink:0;display:flex;align-items:center;gap:5px;
-  padding:8px 14px;border-radius:99px;border:1px solid var(--br);
-  background:var(--c1);color:var(--mu);font-size:.75rem;font-weight:600;
-  cursor:pointer;transition:all .2s;white-space:nowrap;
-}
-.tab.on{border-color:var(--tc);color:var(--tc);background:rgba(255,255,255,.03)}
+.tab{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:8px 14px;border-radius:99px;border:1px solid var(--br);background:var(--c1);color:var(--mu);font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap}
 .tab .tq{font-weight:800}
 .panel{display:none;animation:up .25s ease}
 .panel.on{display:block}
 .combo-hdr{display:flex;justify-content:space-between;align-items:flex-start;background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:16px;margin-bottom:10px}
-.combo-left .combo-name{font-size:.65rem;font-weight:600;color:var(--mu);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
-.combo-left .combo-picks{font-size:.72rem;color:var(--m2);margin-top:4px}
+.combo-quota-val{font-size:1.8rem;font-weight:900;line-height:1;letter-spacing:-1px}
+.combo-picks-sub{font-size:.72rem;color:var(--m2);margin-top:4px}
+.combo-prob-val{font-size:2rem;font-weight:900;line-height:1}
+.combo-name{font-size:.65rem;font-weight:600;color:var(--mu);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
 .pick{background:var(--c2);border:1px solid var(--br);border-radius:14px;padding:14px;margin-bottom:8px;position:relative;overflow:hidden}
-.pick-accent{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--g);border-radius:3px 0 0 3px}
+.pick-accent{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
 .pick-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.pick-league{font-size:.65rem;font-weight:600;color:var(--g);letter-spacing:.5px}
+.pick-league{font-size:.65rem;font-weight:600;letter-spacing:.5px}
 .pick-time{font-size:.62rem;color:var(--mu)}
 .pick-body{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.pick-idx{width:22px;height:22px;border-radius:7px;background:var(--gb);color:var(--g);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pick-idx{width:22px;height:22px;border-radius:7px;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .pick-txt{flex:1;min-width:0}
 .pick-match{font-weight:600;font-size:.84rem;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pick-market{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--mu)}
@@ -109,11 +103,9 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 .mini-v.ok{color:var(--g)}.mini-v.warn{color:var(--ye)}.mini-v.bad{color:var(--re)}
 .mini-l{font-size:.58rem;color:var(--mu);margin-top:1px}
 .total-bar{display:flex;justify-content:space-between;align-items:center;background:var(--gb);border:1px solid rgba(0,230,118,.15);border-radius:14px;padding:14px 16px;margin-top:4px}
-.total-info .tl{font-size:.62rem;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase}
-.total-info .ts{font-size:.6rem;color:var(--m2);margin-top:3px}
-.total-val{font-size:2.4rem;font-weight:900;color:var(--g);letter-spacing:-1px;line-height:1}
-.reset-btn{width:100%;background:transparent;border:1px solid rgba(244,63,94,.25);border-radius:12px;padding:10px;color:#fb7185;font-weight:600;font-size:.75rem;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;margin-bottom:10px}
-.reset-btn:active{background:rgba(244,63,94,.07)}
+.total-lbl{font-size:.62rem;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase}
+.total-sub{font-size:.6rem;color:var(--m2);margin-top:3px}
+.total-val{font-size:2.4rem;font-weight:900;letter-spacing:-1px;line-height:1}
 </style>
 </head>
 <body>
@@ -122,25 +114,20 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 <div class="hdr">
   <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
   <h1 class="hdr-title"><span>Scommettiamo</span></h1>
-  <p class="hdr-sub">Poisson · Dixon-Coles · SofaScore · Tutti i campionati</p>
+  <p class="hdr-sub">Poisson · Dixon-Coles · SofaScore</p>
 </div>
 
 <div class="card">
-  <span class="field-label">Backend Railway</span>
-  <div class="field-wrap">
-    <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app" oninput="save()">
-  </div>
+  <span class="field-label">Backend URL (Railway)</span>
+  <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
   <span class="saved-tag" id="urlSaved">✓ Salvato</span>
-  <div class="field-hint">
-    Nessuna API key necessaria — i dati vengono da SofaScore gratuitamente.<br>
-    <a href="https://railway.app" target="_blank">Railway →</a>
-  </div>
+  <div class="field-hint">Nessuna API key — dati SofaScore gratuiti. <a href="https://railway.app" target="_blank">Railway →</a></div>
 </div>
 
-<button class="gbtn" id="gbtn" onclick="gen()">⚽ &nbsp;Genera Tutte le Multipla</button>
-<button class="reset-btn" onclick="resetCache()">🗑️ Svuota Cache DB</button>
+<button class="gbtn" id="gbtn">⚽ &nbsp;Genera Tutte le Multipla</button>
+<button class="rbtn" id="rbtn">🗑️ Svuota Cache DB</button>
 
-<div class="err-box" id="errBox"><span>⚠️</span><span id="errMsg"></span></div>
+<div class="err" id="errBox"><span>⚠️</span><span id="errMsg">Errore</span></div>
 
 <div class="stats" id="sbar">
   <div class="stat-card"><div class="stat-n" id="sL">0</div><div class="stat-l">Campionati</div></div>
@@ -151,174 +138,235 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 <div id="results"></div>
 
 </div></div>
+
 <script>
-const TC={3:'var(--g)',5:'var(--ye)',8:'var(--or)',10:'var(--re)',100:'var(--pu)'};
-const ICON={3:'🟢',5:'🟡',8:'🟠',10:'🔴',100:'💀'};
+var TC  = {3:'#00e676', 5:'#fbbf24', 8:'#f97316', 10:'#f43f5e', 100:'#a78bfa'};
+var ICO = {3:'🟢', 5:'🟡', 8:'🟠', 10:'🔴', 100:'💀'};
 
-function save(){
-  const bu=document.getElementById('backendUrl').value.trim().replace(//$/,'');
-  if(bu){localStorage.setItem('backendUrl',bu);document.getElementById('urlSaved').classList.add('show')}
+function getUrl(){
+  return document.getElementById('backendUrl').value.trim().replace(//+$/,'');
 }
+function saveUrl(){
+  var u = getUrl();
+  if(u){ localStorage.setItem('bu', u); document.getElementById('urlSaved').classList.add('show'); }
+}
+document.getElementById('backendUrl').addEventListener('input', saveUrl);
 
-window.onload=()=>{
-  const bu=localStorage.getItem('backendUrl');
-  if(bu){document.getElementById('backendUrl').value=bu;document.getElementById('urlSaved').classList.add('show')}
-};
+window.addEventListener('load', function(){
+  var saved = localStorage.getItem('bu');
+  if(saved){
+    document.getElementById('backendUrl').value = saved;
+    document.getElementById('urlSaved').classList.add('show');
+  }
+});
 
-function showErr(m){const b=document.getElementById('errBox');b.classList.add('show');document.getElementById('errMsg').textContent=m}
-function hideErr(){document.getElementById('errBox').classList.remove('show')}
+function showErr(msg){
+  document.getElementById('errMsg').textContent = msg;
+  document.getElementById('errBox').classList.add('show');
+}
+function hideErr(){ document.getElementById('errBox').classList.remove('show'); }
 
 function fmtDate(iso){
-  if(!iso)return'';
-  return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  if(!iso) return '';
+  try{
+    return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }catch(e){ return ''; }
 }
 
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));
-  document.querySelector(`.tab[data-t="${t}"]`).classList.add('on');
-  document.querySelector(`.panel[data-t="${t}"]`).classList.add('on');
+function switchTab(target){
+  var tabs   = document.querySelectorAll('.tab');
+  var panels = document.querySelectorAll('.panel');
+  tabs.forEach(function(t){ t.classList.remove('on'); t.style.borderColor=''; t.style.color=''; });
+  panels.forEach(function(p){ p.classList.remove('on'); });
+  var selTab   = document.querySelector('.tab[data-t="'+target+'"]');
+  var selPanel = document.querySelector('.panel[data-t="'+target+'"]');
+  if(selTab){
+    selTab.classList.add('on');
+    selTab.style.borderColor = TC[target] || TC[3];
+    selTab.style.color = TC[target] || TC[3];
+  }
+  if(selPanel) selPanel.classList.add('on');
 }
 
-async function resetCache(){
-  const bu=document.getElementById('backendUrl').value.trim().replace(//$/,'');
-  if(!bu){showErr('Inserisci prima il Backend URL.');return}
+document.getElementById('rbtn').addEventListener('click', async function(){
+  var bu = getUrl();
+  if(!bu){ showErr('Inserisci prima il Backend URL.'); return; }
   hideErr();
+  this.textContent = '⏳ Pulizia in corso...';
+  this.disabled = true;
   try{
-    const r=await fetch(bu+'/reset-cache',{method:'POST'});
-    const d=await r.json();
-    if(d.status==='ok'){
-      const btn=document.querySelector('.reset-btn');
-      btn.textContent='✅ Cache svuotata!';
-      btn.style.color='var(--g)';btn.style.borderColor='rgba(0,230,118,.25)';
-      setTimeout(()=>{btn.textContent='🗑️ Svuota Cache DB';btn.style.color='';btn.style.borderColor=''},3000);
+    var r = await fetch(bu + '/reset-cache', {method:'POST'});
+    var d = await r.json();
+    if(d.status === 'ok'){
+      this.textContent = '✅ Cache svuotata!';
+      this.style.color = '#00e676';
+      this.style.borderColor = 'rgba(0,230,118,.25)';
+      var btn = this;
+      setTimeout(function(){
+        btn.textContent = '🗑️ Svuota Cache DB';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 3000);
     }
-  }catch(e){showErr('Errore reset cache: '+e.message)}
+  }catch(e){
+    showErr('Errore reset cache: ' + e.message);
+  }
+  this.disabled = false;
+});
+
+function buildPick(p, idx, tc){
+  var pct     = Math.round(p.prob * 100);
+  var o25     = Math.round(((p.probs && p.probs.over25) || 0) * 100);
+  var gg      = Math.round(((p.probs && p.probs.gg) || 0) * 100);
+  var eg      = p.exp_g || '—';
+  var egClass = parseFloat(eg) > 2.5 ? 'ok' : parseFloat(eg) > 1.8 ? 'warn' : 'bad';
+  var isVal   = p.edge > 0.02;
+  var badge   = isVal ? '<span class="vbdg">VALUE</span>' : '<span class="nvbdg">NO VALUE</span>';
+  var fh      = Math.round((p.home_form || 0) * 100);
+  var fa      = Math.round((p.away_form || 0) * 100);
+
+  return '<div class="pick">'
+    + '<div class="pick-accent" style="background:' + tc + '"></div>'
+    + '<div class="pick-head">'
+    +   '<span class="pick-league" style="color:' + tc + '">' + p.league + '</span>'
+    +   '<span class="pick-time">' + fmtDate(p.commence_time) + '</span>'
+    + '</div>'
+    + '<div class="pick-body">'
+    +   '<div class="pick-idx" style="background:rgba(255,255,255,.04);color:' + tc + '">' + (idx+1) + '</div>'
+    +   '<div class="pick-txt">'
+    +     '<div class="pick-match">' + p.match + '</div>'
+    +     '<div class="pick-market">' + p.name + ' ' + badge + '</div>'
+    +   '</div>'
+    +   '<div class="pick-odd">@' + p.odds + '</div>'
+    + '</div>'
+    + '<div class="pick-bars">'
+    +   '<div class="bar-row"><span class="bar-lbl">Probabilità</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + tc + '"></div></div><span class="bar-val" style="color:' + tc + '">' + pct + '%</span></div>'
+    +   '<div class="bar-row"><span class="bar-lbl">Over 2.5</span><div class="bar-track"><div class="bar-fill" style="width:' + o25 + '%"></div></div><span class="bar-val">' + o25 + '%</span></div>'
+    +   '<div class="bar-row"><span class="bar-lbl">GG</span><div class="bar-track"><div class="bar-fill" style="width:' + gg + '%"></div></div><span class="bar-val">' + gg + '%</span></div>'
+    + '</div>'
+    + '<div class="pick-minis">'
+    +   '<div class="mini"><div class="mini-v ' + egClass + '">' + eg + '</div><div class="mini-l">Gol attesi</div></div>'
+    +   '<div class="mini"><div class="mini-v">' + fh + '%</div><div class="mini-l">Forma casa</div></div>'
+    +   '<div class="mini"><div class="mini-v">' + fa + '%</div><div class="mini-l">Trasferta</div></div>'
+    + '</div>'
+    + '</div>';
 }
 
-function buildPanel(m){
-  const tc=TC[m.target]||TC[3];
-  const icon=ICON[m.target]||'⚡';
-  const prob=m.combo_probability||0;
-  const vcount=m.value_in_combo||0;
-  const dq=m.picks[0]?.data_quality||'';
-  const dqBadge=dq==='low'?'<span style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:var(--or);font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px">⚠️ Dati stimati</span>':'';
+function buildPanel(m, isFirst){
+  var tc      = TC[m.target] || TC[3];
+  var ico     = ICO[m.target] || '⚡';
+  var prob    = m.combo_probability || 0;
+  var dq      = (m.picks[0] && m.picks[0].data_quality) || '';
+  var dqBadge = dq === 'low'
+    ? '<span style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:#f97316;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px">⚠️ Dati stimati</span>'
+    : '';
 
-  let picks='';
-  m.picks.forEach((p,i)=>{
-    const pct=Math.round(p.prob*100);
-    const o25=Math.round((p.probs?.over25||0)*100);
-    const gg=Math.round((p.probs?.gg||0)*100);
-    const eg=p.exp_g||'—';
-    const isVal=p.edge>0.02;
-    picks+=`<div class="pick">
-      <div class="pick-accent" style="background:${tc}"></div>
-      <div class="pick-head">
-        <span class="pick-league" style="color:${tc}">${p.league}</span>
-        <span class="pick-time">${fmtDate(p.commence_time)}</span>
-      </div>
-      <div class="pick-body">
-        <div class="pick-idx" style="background:rgba(255,255,255,.04);color:${tc}">${i+1}</div>
-        <div class="pick-txt">
-          <div class="pick-match">${p.match}</div>
-          <div class="pick-market">${p.name} ${isVal?'<span class="vbdg">VALUE</span>':'<span class="nvbdg">NO VALUE</span>'}</div>
-        </div>
-        <div class="pick-odd" style="color:var(--ye)">@${p.odds}</div>
-      </div>
-      <div class="pick-bars">
-        <div class="bar-row"><span class="bar-lbl">Probabilità</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${tc}"></div></div><span class="bar-val" style="color:${tc}">${pct}%</span></div>
-        <div class="bar-row"><span class="bar-lbl">Over 2.5</span><div class="bar-track"><div class="bar-fill" style="width:${o25}%"></div></div><span class="bar-val">${o25}%</span></div>
-        <div class="bar-row"><span class="bar-lbl">GG</span><div class="bar-track"><div class="bar-fill" style="width:${gg}%"></div></div><span class="bar-val">${gg}%</span></div>
-      </div>
-      <div class="pick-minis">
-        <div class="mini"><div class="mini-v ${parseFloat(eg)>2.5?'ok':parseFloat(eg)>1.8?'warn':'bad'}">${eg}</div><div class="mini-l">Gol attesi</div></div>
-        <div class="mini"><div class="mini-v">${Math.round((p.home_form||0)*100)}%</div><div class="mini-l">Forma casa</div></div>
-        <div class="mini"><div class="mini-v">${Math.round((p.away_form||0)*100)}%</div><div class="mini-l">Trasferta</div></div>
-      </div>
-    </div>`;
-  });
+  var picksHtml = '';
+  for(var i=0; i<m.picks.length; i++){
+    picksHtml += buildPick(m.picks[i], i, tc);
+  }
 
-  return `<div class="panel" data-t="${m.target}">
-    <div class="combo-hdr">
-      <div class="combo-left">
-        <div class="combo-name">${icon} Multipla x${m.target}${dqBadge}</div>
-        <div style="font-size:1.8rem;font-weight:900;color:${tc};letter-spacing:-1px;line-height:1">${m.total_odds}</div>
-        <div class="combo-picks">${m.picks.length} selezioni · ${vcount} value bet</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:.65rem;color:var(--mu);margin-bottom:6px;letter-spacing:.5px">PROB. VINCITA</div>
-        <div style="font-size:2rem;font-weight:900;color:${tc};line-height:1">${prob}%</div>
-        <div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:80px;margin-left:auto">
-          <div style="height:4px;border-radius:99px;background:${tc};width:${Math.min(prob,100)}%;transition:width .8s ease"></div>
-        </div>
-      </div>
-    </div>
-    ${picks}
-    <div class="total-bar">
-      <div class="total-info">
-        <div class="tl">Quota Totale</div>
-        <div class="ts">${m.picks.length} eventi · prob. ${prob}%</div>
-      </div>
-      <div class="total-val" style="color:${tc}">${m.total_odds}</div>
-    </div>
-  </div>`;
+  return '<div class="panel' + (isFirst ? ' on' : '') + '" data-t="' + m.target + '">'
+    + '<div class="combo-hdr">'
+    +   '<div>'
+    +     '<div class="combo-name">' + ico + ' Multipla x' + m.target + dqBadge + '</div>'
+    +     '<div class="combo-quota-val" style="color:' + tc + '">' + m.total_odds + '</div>'
+    +     '<div class="combo-picks-sub">' + m.picks.length + ' selezioni · ' + (m.value_in_combo||0) + ' value bet</div>'
+    +   '</div>'
+    +   '<div style="text-align:right">'
+    +     '<div style="font-size:.65rem;color:var(--mu);margin-bottom:6px;letter-spacing:.5px">PROB. VINCITA</div>'
+    +     '<div class="combo-prob-val" style="color:' + tc + '">' + prob + '%</div>'
+    +     '<div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:80px;margin-left:auto">'
+    +       '<div style="height:4px;border-radius:99px;background:' + tc + ';width:' + Math.min(prob,100) + '%;transition:width .8s ease"></div>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>'
+    + picksHtml
+    + '<div class="total-bar">'
+    +   '<div><div class="total-lbl">Quota Totale</div><div class="total-sub">' + m.picks.length + ' eventi · prob. ' + prob + '%</div></div>'
+    +   '<div class="total-val" style="color:' + tc + '">' + m.total_odds + '</div>'
+    + '</div>'
+    + '</div>';
 }
 
-async function gen(){
-  const bu=document.getElementById('backendUrl').value.trim().replace(//$/,'');
-  if(!bu){showErr('Inserisci il Backend URL di Railway.');return}
-  save();hideErr();
-  document.getElementById('results').innerHTML='';
+document.getElementById('gbtn').addEventListener('click', async function(){
+  var bu = getUrl();
+  if(!bu){ showErr('Inserisci il Backend URL di Railway.'); return; }
+  saveUrl();
+  hideErr();
+  document.getElementById('results').innerHTML = '';
   document.getElementById('sbar').classList.remove('show');
-  const btn=document.getElementById('gbtn');
-  btn.disabled=true;btn.innerHTML='<div class="spin"></div> &nbsp;Analisi in corso...';
+
+  var btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin"></div>&nbsp;Analisi in corso...';
 
   try{
-    const r=await fetch(bu+'/generate',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({})
+    var resp = await fetch(bu + '/generate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
     });
-    const d=await r.json();
+
+    if(!resp.ok){
+      var errData = await resp.json().catch(function(){ return {}; });
+      showErr(errData.error || 'Errore server: ' + resp.status);
+      btn.disabled = false;
+      btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
+      return;
+    }
+
+    var d = await resp.json();
 
     if(d.error){
       showErr(d.error);
-      btn.disabled=false;btn.innerHTML='⚽ &nbsp;Genera Tutte le Multipla';
+      btn.disabled = false;
+      btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
       return;
     }
 
     document.getElementById('sbar').classList.add('show');
-    document.getElementById('sL').textContent=d.leagues_with_data||0;
-    document.getElementById('sM').textContent=d.matches_analyzed||0;
-    document.getElementById('sV').textContent=d.value_bets_found||0;
+    document.getElementById('sL').textContent = d.leagues_with_data || 0;
+    document.getElementById('sM').textContent = d.matches_analyzed || 0;
+    document.getElementById('sV').textContent = d.value_bets_found || 0;
 
-    const cacheNote=d.cache_used?'<span style="background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2);color:#38bdf8;font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:99px;vertical-align:middle">⚡ Cached</span>':'';
-    const dayTxt=(d.day==='oggi'?'📅 Partite di Oggi':d.day==='domani'?'📅 Partite di Domani':'📅 Partite di Dopodomani')+cacheNote;
+    var dayLabel = d.day === 'oggi' ? '📅 Partite di Oggi'
+                 : d.day === 'domani' ? '📅 Partite di Domani'
+                 : '📅 Partite di Dopodomani';
 
-    let tabs='<div class="tabs">';
-    let panels='';
-    d.multiples.forEach((m,i)=>{
-      const tc=TC[m.target]||TC[3];
-      tabs+=`<div class="tab ${i===0?'on':''}" data-t="${m.target}"
-        style="--tc:${tc};${i===0?'border-color:'+tc+';color:'+tc:''}"
-        onclick="switchTab(${m.target});document.querySelectorAll('.tab').forEach(x=>{x.style.borderColor='';x.style.color=''});this.style.borderColor='${tc}';this.style.color='${tc}'">
-        ${ICON[m.target]} <span class="tq">x${m.target}</span>&nbsp;${m.total_odds}
-      </div>`;
-      let panel=buildPanel(m);
-      if(i===0)panel=panel.replace('class="panel"','class="panel on"');
-      panels+=panel;
-    });
-    tabs+='</div>';
+    var tabsHtml   = '<div class="tabs">';
+    var panelsHtml = '';
 
-    document.getElementById('results').innerHTML=`
-      <div class="day-banner">${dayTxt}</div>
-      ${tabs}${panels}`;
+    for(var i=0; i<d.multiples.length; i++){
+      var m       = d.multiples[i];
+      var tc      = TC[m.target] || TC[3];
+      var ico     = ICO[m.target] || '⚡';
+      var isFirst = (i === 0);
+      var activeStyle = isFirst ? ('border-color:' + tc + ';color:' + tc) : '';
+
+      tabsHtml += '<div class="tab' + (isFirst ? ' on' : '') + '" data-t="' + m.target + '"'
+               + ' style="' + activeStyle + '"'
+               + ' onclick="switchTab(' + m.target + ')">'
+               + ico + ' <span class="tq">x' + m.target + '</span>&nbsp;' + m.total_odds
+               + '</div>';
+
+      panelsHtml += buildPanel(m, isFirst);
+    }
+    tabsHtml += '</div>';
+
+    document.getElementById('results').innerHTML =
+      '<div class="day-banner">' + dayLabel + '</div>'
+      + tabsHtml
+      + panelsHtml;
 
   }catch(e){
-    showErr('Errore connessione: '+e.message);
+    showErr('Errore connessione: ' + e.message);
+    console.error(e);
   }
-  btn.disabled=false;btn.innerHTML='⚽ &nbsp;Genera Tutte le Multipla';
-}
+
+  btn.disabled = false;
+  btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
+});
 </script>
 </body>
 </html>
