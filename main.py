@@ -397,27 +397,30 @@ def health():
 
 @app.route("/sync", methods=["POST"])
 def sync_stats():
-    """Job manuale per sincronizzare le statistiche squadre nel DB"""
+    """Avvia sync in background — risponde subito senza timeout"""
     body   = request.get_json() or {}
     fd_key = (body.get("football_api_key") or "").strip()
     if not fd_key:
         return jsonify({"error": "football_api_key mancante"}), 400
 
-    fd_codes = ["PL", "SA", "PD", "BL1", "FL1", "CL", "EL", "PPL", "DED"]
-    results = {}
-    for code in fd_codes:
-        count = sync_league_stats(code, fd_key)
-        results[code] = count
-        time.sleep(1)
+    def run_sync():
+        fd_codes = ["PL", "SA", "PD", "BL1", "FL1", "CL", "EL", "PPL", "DED"]
+        results = {}
+        for code in fd_codes:
+            count = sync_league_stats(code, fd_key)
+            results[code] = count
+        with db_lock:
+            conn = get_db()
+            conn.execute("INSERT INTO job_log (job_name, status, message, ran_at) VALUES (?,?,?,?)",
+                ("sync_stats", "ok", str(results), datetime.now(timezone.utc).isoformat()))
+            conn.commit()
+            conn.close()
 
-    with db_lock:
-        conn = get_db()
-        conn.execute("INSERT INTO job_log (job_name, status, message, ran_at) VALUES (?,?,?,?)",
-            ("sync_stats", "ok", str(results), datetime.now(timezone.utc).isoformat()))
-        conn.commit()
-        conn.close()
+    # Lancia in background senza bloccare la risposta
+    t = threading.Thread(target=run_sync, daemon=True)
+    t.start()
 
-    return jsonify({"synced": results})
+    return jsonify({"status": "sync avviato in background — controlla /health tra qualche minuto"})
 
 @app.route("/generate", methods=["POST"])
 def generate():
