@@ -194,6 +194,13 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
     <a href="https://the-odds-api.com" target="_blank">Odds API →</a> &nbsp;
     <a href="https://www.football-data.org" target="_blank">Football Data →</a>
   </div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--br)">
+    <button onclick="syncStats()" id="syncBtn" style="background:transparent;border:1px solid var(--br);color:var(--mu);border-radius:10px;padding:8px 14px;font-size:.72rem;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;transition:all .2s">
+      🔄 Sync Statistiche nel DB
+    </button>
+    <span id="syncMsg" style="color:var(--mu);font-size:.68rem;margin-left:8px"></span>
+    <div style="color:var(--m2);font-size:.65rem;margin-top:5px">Aggiorna il database locale con i dati stagione. Fallo 1 volta al giorno.</div>
+  </div>
 </div>
 
 <!-- BUTTON -->
@@ -307,6 +314,23 @@ function buildPanel(m){
       <div class="total-val" style="color:${tc}">${m.total_odds}</div>
     </div>
   </div>`;
+}
+
+async function syncStats(){
+  const bu=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  const fk=document.getElementById('fbKey').value.trim();
+  if(!bu){showErr('Inserisci il Backend URL.');return}
+  if(!fk){showErr('Inserisci la Football Data key per sincronizzare.');return}
+  const btn=document.getElementById('syncBtn');
+  const msg=document.getElementById('syncMsg');
+  btn.disabled=true;msg.textContent='Sincronizzazione in corso...';
+  try{
+    const r=await fetch(bu+'/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({football_api_key:fk})});
+    const d=await r.json();
+    if(d.error){msg.textContent='Errore: '+d.error;}
+    else{msg.style.color='var(--g)';msg.textContent='✓ Sync completato! '+JSON.stringify(d.synced);}
+  }catch(e){msg.textContent='Errore: '+e.message;}
+  btn.disabled=false;
 }
 
 async function gen(){
