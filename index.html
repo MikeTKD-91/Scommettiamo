@@ -7,21 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.1);--glow:rgba(0,230,118,.25);
+  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.1);
   --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
   --br:rgba(255,255,255,.06);
   --tx:#f1f5ff;--mu:#6b7fa3;--m2:#3d4e6b;
-  --ye:#fbbf24;--re:#f43f5e;--or:#f97316;--pu:#a78bfa;--bl:#38bdf8;
+  --ye:#fbbf24;--re:#f43f5e;--or:#f97316;--pu:#a78bfa;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
 body::before{content:'';position:fixed;inset:0;
-  background:radial-gradient(circle at 20% 20%,rgba(0,230,118,.04) 0%,transparent 50%),
-             radial-gradient(circle at 80% 80%,rgba(56,189,248,.03) 0%,transparent 50%);
+  background:radial-gradient(circle at 20% 20%,rgba(0,230,118,.04) 0%,transparent 50%);
   pointer-events:none;z-index:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .page{position:relative;z-index:1;padding:20px 16px 80px;display:flex;justify-content:center}
 .wrap{width:100%;max-width:460px}
@@ -30,35 +28,32 @@ body::before{content:'';position:fixed;inset:0;
 .live-dot{width:5px;height:5px;background:var(--g);border-radius:50%;animation:pulse 1.5s infinite}
 .hdr-title{font-size:2.6rem;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:6px}
 .hdr-title span{background:linear-gradient(135deg,var(--tx) 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hdr-sub{color:var(--mu);font-size:.75rem;font-weight:400}
+.hdr-sub{color:var(--mu);font-size:.75rem}
 .card{background:var(--c1);border:1px solid var(--br);border-radius:18px;padding:18px;margin-bottom:10px}
 .field-label{color:var(--mu);font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
-input[type=text]{
-  width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;
-  padding:11px 13px;color:var(--tx);font-size:.82rem;outline:none;
-  font-family:'Outfit',monospace;transition:all .2s;
-}
+input[type=text]{width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;padding:11px 13px;color:var(--tx);font-size:.82rem;outline:none;font-family:'Outfit',monospace;transition:all .2s}
 input::placeholder{color:var(--m2)}
 input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 .saved-tag{color:var(--g);font-size:.65rem;font-weight:600;display:none;align-items:center;gap:3px;margin-top:5px}
 .saved-tag.show{display:inline-flex}
 .field-hint{color:var(--m2);font-size:.65rem;margin-top:8px;line-height:1.6}
 .field-hint a{color:var(--g);text-decoration:none}
-.gbtn{
-  width:100%;background:var(--g);border:none;border-radius:14px;
-  padding:16px;color:#000;font-weight:700;font-size:.95rem;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-bottom:10px;font-family:'Outfit',sans-serif;
-  transition:all .2s;
-}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.gbtn{width:100%;background:var(--g);border:none;border-radius:14px;padding:14px 10px;color:#000;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Outfit',sans-serif;transition:all .2s}
 .gbtn:disabled{opacity:.45;cursor:not-allowed}
-.rbtn{
-  width:100%;background:transparent;border:1px solid rgba(244,63,94,.25);border-radius:12px;
-  padding:10px;color:#fb7185;font-weight:600;font-size:.75rem;
-  cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:10px;transition:all .2s;
-}
-.spin{width:15px;height:15px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite}
-.err{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:13px 15px;color:#fb7185;font-size:.8rem;margin-bottom:12px;display:none;gap:8px}
+.tbtn{width:100%;background:transparent;border:1px solid rgba(56,189,248,.3);border-radius:14px;padding:14px 10px;color:#38bdf8;font-weight:600;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Outfit',sans-serif;transition:all .2s}
+.tbtn:disabled{opacity:.45;cursor:not-allowed}
+.rbtn{width:100%;background:transparent;border:1px solid rgba(244,63,94,.25);border-radius:12px;padding:10px;color:#fb7185;font-weight:600;font-size:.75rem;cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:10px;transition:all .2s}
+.spin{width:14px;height:14px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spin-bl{width:14px;height:14px;border:2px solid rgba(56,189,248,.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.dbg{background:rgba(0,0,0,.4);border:1px solid var(--br);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:none}
+.dbg.show{display:block}
+.dbg-title{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;color:var(--mu)}
+.dbg-line{font-size:.72rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
+.dbg-line:last-child{border-bottom:none}
+.dbg-ico{flex-shrink:0}
+.dbg-ok{color:var(--g)}.dbg-err{color:var(--re)}.dbg-warn{color:var(--ye)}.dbg-info{color:#38bdf8}
+.err{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:13px 15px;color:#fb7185;font-size:.8rem;margin-bottom:12px;display:none;gap:8px;align-items:flex-start}
 .err.show{display:flex}
 .stats{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
 .stats.show{display:grid}
@@ -95,7 +90,7 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 .bar-row{display:flex;align-items:center;gap:8px}
 .bar-lbl{font-size:.62rem;color:var(--mu);width:62px;flex-shrink:0}
 .bar-track{flex:1;background:rgba(255,255,255,.05);border-radius:99px;height:4px}
-.bar-fill{height:4px;border-radius:99px;background:var(--g);transition:width .7s ease}
+.bar-fill{height:4px;border-radius:99px;transition:width .7s ease}
 .bar-val{font-size:.63rem;color:var(--g);font-weight:700;width:28px;text-align:right;flex-shrink:0}
 .pick-minis{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding-top:10px;border-top:1px solid var(--br)}
 .mini{background:rgba(255,255,255,.02);border-radius:8px;padding:6px;text-align:center}
@@ -121,11 +116,19 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
   <span class="field-label">Backend URL (Railway)</span>
   <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
   <span class="saved-tag" id="urlSaved">✓ Salvato</span>
-  <div class="field-hint">Nessuna API key — dati SofaScore gratuiti. <a href="https://railway.app" target="_blank">Railway →</a></div>
+  <div class="field-hint">Incolla qui il tuo URL Railway. <a href="https://railway.app" target="_blank">Railway →</a></div>
 </div>
 
-<button class="gbtn" id="gbtn">⚽ &nbsp;Genera Tutte le Multipla</button>
+<div class="btn-row">
+  <button class="gbtn" id="gbtn">⚽ Genera Multipla</button>
+  <button class="tbtn" id="tbtn">🔌 Test Connessione</button>
+</div>
 <button class="rbtn" id="rbtn">🗑️ Svuota Cache DB</button>
+
+<div class="dbg" id="dbg">
+  <div class="dbg-title">🔍 Debug</div>
+  <div id="dbgLines"></div>
+</div>
 
 <div class="err" id="errBox"><span>⚠️</span><span id="errMsg">Errore</span></div>
 
@@ -136,236 +139,200 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
 </div>
 
 <div id="results"></div>
-
 </div></div>
 
 <script>
 var TC  = {3:'#00e676', 5:'#fbbf24', 8:'#f97316', 10:'#f43f5e', 100:'#a78bfa'};
 var ICO = {3:'🟢', 5:'🟡', 8:'🟠', 10:'🔴', 100:'💀'};
 
-function getUrl(){
-  return document.getElementById('backendUrl').value.trim().replace(//+$/,'');
-}
+function getUrl(){ return document.getElementById('backendUrl').value.trim().replace(//+$/,''); }
 function saveUrl(){
   var u = getUrl();
-  if(u){ localStorage.setItem('bu', u); document.getElementById('urlSaved').classList.add('show'); }
+  if(u){ localStorage.setItem('bu',u); document.getElementById('urlSaved').classList.add('show'); }
 }
 document.getElementById('backendUrl').addEventListener('input', saveUrl);
-
 window.addEventListener('load', function(){
-  var saved = localStorage.getItem('bu');
-  if(saved){
-    document.getElementById('backendUrl').value = saved;
-    document.getElementById('urlSaved').classList.add('show');
-  }
+  var s = localStorage.getItem('bu');
+  if(s){ document.getElementById('backendUrl').value=s; document.getElementById('urlSaved').classList.add('show'); }
 });
 
-function showErr(msg){
-  document.getElementById('errMsg').textContent = msg;
-  document.getElementById('errBox').classList.add('show');
-}
+function showErr(m){ document.getElementById('errMsg').textContent=m; document.getElementById('errBox').classList.add('show'); }
 function hideErr(){ document.getElementById('errBox').classList.remove('show'); }
+
+function dbgClear(){ document.getElementById('dbgLines').innerHTML=''; document.getElementById('dbg').classList.add('show'); }
+function dbgLine(ico, cls, txt){
+  var d = document.getElementById('dbgLines');
+  var el = document.createElement('div');
+  el.className = 'dbg-line';
+  el.innerHTML = '<span class="dbg-ico">'+ico+'</span><span class="'+cls+'">'+txt+'</span>';
+  d.appendChild(el);
+}
 
 function fmtDate(iso){
   if(!iso) return '';
-  try{
-    return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-  }catch(e){ return ''; }
+  try{ return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+  catch(e){ return ''; }
 }
 
-function switchTab(target){
-  var tabs   = document.querySelectorAll('.tab');
-  var panels = document.querySelectorAll('.panel');
-  tabs.forEach(function(t){ t.classList.remove('on'); t.style.borderColor=''; t.style.color=''; });
-  panels.forEach(function(p){ p.classList.remove('on'); });
-  var selTab   = document.querySelector('.tab[data-t="'+target+'"]');
-  var selPanel = document.querySelector('.panel[data-t="'+target+'"]');
-  if(selTab){
-    selTab.classList.add('on');
-    selTab.style.borderColor = TC[target] || TC[3];
-    selTab.style.color = TC[target] || TC[3];
-  }
-  if(selPanel) selPanel.classList.add('on');
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('on'); x.style.borderColor=''; x.style.color=''; });
+  document.querySelectorAll('.panel').forEach(function(x){ x.classList.remove('on'); });
+  var st = document.querySelector('.tab[data-t="'+t+'"]');
+  var sp = document.querySelector('.panel[data-t="'+t+'"]');
+  if(st){ st.classList.add('on'); st.style.borderColor=TC[t]||TC[3]; st.style.color=TC[t]||TC[3]; }
+  if(sp) sp.classList.add('on');
 }
+
+document.getElementById('tbtn').addEventListener('click', async function(){
+  var bu = getUrl();
+  if(!bu){ showErr('Inserisci prima il Backend URL.'); return; }
+  saveUrl(); hideErr(); dbgClear();
+  this.disabled=true; this.innerHTML='<div class="spin-bl"></div>&nbsp;Test...';
+  dbgLine('🔗','dbg-info','Connessione a: '+bu);
+  try{
+    var t0 = Date.now();
+    var r = await fetch(bu+'/health', {method:'GET', signal: AbortSignal.timeout(10000)});
+    var ms = Date.now()-t0;
+    if(r.ok){
+      var d = await r.json();
+      dbgLine('✅','dbg-ok','Server raggiunto in '+ms+'ms');
+      dbgLine('✅','dbg-ok','Squadre in cache: '+d.team_stats_cached);
+      dbgLine('✅','dbg-ok','Richieste log: '+d.requests_logged);
+      dbgLine('✅','dbg-ok','Railway OK — ora premi Genera Multipla');
+    } else {
+      dbgLine('❌','dbg-err','HTTP '+r.status+' — il server ha risposto con errore');
+    }
+  }catch(e){
+    dbgLine('❌','dbg-err','ERRORE: '+e.message);
+    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
+      dbgLine('→','dbg-warn','1. URL Railway sbagliato o servizio spento');
+      dbgLine('→','dbg-warn','2. Railway in sleep — riavvialo dalla dashboard');
+      dbgLine('→','dbg-warn','3. CORS non abilitato nel backend');
+    }
+    if(e.name==='TimeoutError'){ dbgLine('⚠️','dbg-warn','Timeout — Railway in sleep, attendi 30s e riprova'); }
+  }
+  this.disabled=false; this.innerHTML='🔌 Test Connessione';
+});
 
 document.getElementById('rbtn').addEventListener('click', async function(){
   var bu = getUrl();
   if(!bu){ showErr('Inserisci prima il Backend URL.'); return; }
-  hideErr();
-  this.textContent = '⏳ Pulizia in corso...';
-  this.disabled = true;
+  hideErr(); this.textContent='⏳ Pulizia...'; this.disabled=true;
   try{
-    var r = await fetch(bu + '/reset-cache', {method:'POST'});
+    var r = await fetch(bu+'/reset-cache',{method:'POST'});
     var d = await r.json();
-    if(d.status === 'ok'){
-      this.textContent = '✅ Cache svuotata!';
-      this.style.color = '#00e676';
-      this.style.borderColor = 'rgba(0,230,118,.25)';
-      var btn = this;
-      setTimeout(function(){
-        btn.textContent = '🗑️ Svuota Cache DB';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-      }, 3000);
+    if(d.status==='ok'){
+      this.textContent='✅ Cache svuotata!'; this.style.color='#00e676';
+      var b=this; setTimeout(function(){ b.textContent='🗑️ Svuota Cache DB'; b.style.color=''; },3000);
     }
-  }catch(e){
-    showErr('Errore reset cache: ' + e.message);
-  }
-  this.disabled = false;
+  }catch(e){ showErr('Errore: '+e.message); }
+  this.disabled=false;
 });
 
 function buildPick(p, idx, tc){
-  var pct     = Math.round(p.prob * 100);
-  var o25     = Math.round(((p.probs && p.probs.over25) || 0) * 100);
-  var gg      = Math.round(((p.probs && p.probs.gg) || 0) * 100);
-  var eg      = p.exp_g || '—';
-  var egClass = parseFloat(eg) > 2.5 ? 'ok' : parseFloat(eg) > 1.8 ? 'warn' : 'bad';
-  var isVal   = p.edge > 0.02;
-  var badge   = isVal ? '<span class="vbdg">VALUE</span>' : '<span class="nvbdg">NO VALUE</span>';
-  var fh      = Math.round((p.home_form || 0) * 100);
-  var fa      = Math.round((p.away_form || 0) * 100);
-
+  var pct=Math.round(p.prob*100);
+  var o25=Math.round(((p.probs&&p.probs.over25)||0)*100);
+  var gg=Math.round(((p.probs&&p.probs.gg)||0)*100);
+  var eg=p.exp_g||'—';
+  var ec=parseFloat(eg)>2.5?'ok':parseFloat(eg)>1.8?'warn':'bad';
+  var isVal=p.edge>0.02;
+  var badge=isVal?'<span class="vbdg">VALUE</span>':'<span class="nvbdg">NO VALUE</span>';
+  var fh=Math.round((p.home_form||0)*100);
+  var fa=Math.round((p.away_form||0)*100);
   return '<div class="pick">'
-    + '<div class="pick-accent" style="background:' + tc + '"></div>'
-    + '<div class="pick-head">'
-    +   '<span class="pick-league" style="color:' + tc + '">' + p.league + '</span>'
-    +   '<span class="pick-time">' + fmtDate(p.commence_time) + '</span>'
-    + '</div>'
-    + '<div class="pick-body">'
-    +   '<div class="pick-idx" style="background:rgba(255,255,255,.04);color:' + tc + '">' + (idx+1) + '</div>'
-    +   '<div class="pick-txt">'
-    +     '<div class="pick-match">' + p.match + '</div>'
-    +     '<div class="pick-market">' + p.name + ' ' + badge + '</div>'
-    +   '</div>'
-    +   '<div class="pick-odd">@' + p.odds + '</div>'
-    + '</div>'
-    + '<div class="pick-bars">'
-    +   '<div class="bar-row"><span class="bar-lbl">Probabilità</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + tc + '"></div></div><span class="bar-val" style="color:' + tc + '">' + pct + '%</span></div>'
-    +   '<div class="bar-row"><span class="bar-lbl">Over 2.5</span><div class="bar-track"><div class="bar-fill" style="width:' + o25 + '%"></div></div><span class="bar-val">' + o25 + '%</span></div>'
-    +   '<div class="bar-row"><span class="bar-lbl">GG</span><div class="bar-track"><div class="bar-fill" style="width:' + gg + '%"></div></div><span class="bar-val">' + gg + '%</span></div>'
-    + '</div>'
-    + '<div class="pick-minis">'
-    +   '<div class="mini"><div class="mini-v ' + egClass + '">' + eg + '</div><div class="mini-l">Gol attesi</div></div>'
-    +   '<div class="mini"><div class="mini-v">' + fh + '%</div><div class="mini-l">Forma casa</div></div>'
-    +   '<div class="mini"><div class="mini-v">' + fa + '%</div><div class="mini-l">Trasferta</div></div>'
-    + '</div>'
-    + '</div>';
+    +'<div class="pick-accent" style="background:'+tc+'"></div>'
+    +'<div class="pick-head"><span class="pick-league" style="color:'+tc+'">'+p.league+'</span><span class="pick-time">'+fmtDate(p.commence_time)+'</span></div>'
+    +'<div class="pick-body">'
+    +'<div class="pick-idx" style="background:rgba(255,255,255,.04);color:'+tc+'">'+(idx+1)+'</div>'
+    +'<div class="pick-txt"><div class="pick-match">'+p.match+'</div><div class="pick-market">'+p.name+' '+badge+'</div></div>'
+    +'<div class="pick-odd">@'+p.odds+'</div>'
+    +'</div>'
+    +'<div class="pick-bars">'
+    +'<div class="bar-row"><span class="bar-lbl">Probabilità</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+tc+'"></div></div><span class="bar-val" style="color:'+tc+'">'+pct+'%</span></div>'
+    +'<div class="bar-row"><span class="bar-lbl">Over 2.5</span><div class="bar-track"><div class="bar-fill" style="width:'+o25+'%;background:'+tc+'"></div></div><span class="bar-val">'+o25+'%</span></div>'
+    +'<div class="bar-row"><span class="bar-lbl">GG</span><div class="bar-track"><div class="bar-fill" style="width:'+gg+'%;background:'+tc+'"></div></div><span class="bar-val">'+gg+'%</span></div>'
+    +'</div>'
+    +'<div class="pick-minis">'
+    +'<div class="mini"><div class="mini-v '+ec+'">'+eg+'</div><div class="mini-l">Gol attesi</div></div>'
+    +'<div class="mini"><div class="mini-v">'+fh+'%</div><div class="mini-l">Forma casa</div></div>'
+    +'<div class="mini"><div class="mini-v">'+fa+'%</div><div class="mini-l">Trasferta</div></div>'
+    +'</div></div>';
 }
 
 function buildPanel(m, isFirst){
-  var tc      = TC[m.target] || TC[3];
-  var ico     = ICO[m.target] || '⚡';
-  var prob    = m.combo_probability || 0;
-  var dq      = (m.picks[0] && m.picks[0].data_quality) || '';
-  var dqBadge = dq === 'low'
-    ? '<span style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:#f97316;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px">⚠️ Dati stimati</span>'
-    : '';
-
-  var picksHtml = '';
-  for(var i=0; i<m.picks.length; i++){
-    picksHtml += buildPick(m.picks[i], i, tc);
-  }
-
-  return '<div class="panel' + (isFirst ? ' on' : '') + '" data-t="' + m.target + '">'
-    + '<div class="combo-hdr">'
-    +   '<div>'
-    +     '<div class="combo-name">' + ico + ' Multipla x' + m.target + dqBadge + '</div>'
-    +     '<div class="combo-quota-val" style="color:' + tc + '">' + m.total_odds + '</div>'
-    +     '<div class="combo-picks-sub">' + m.picks.length + ' selezioni · ' + (m.value_in_combo||0) + ' value bet</div>'
-    +   '</div>'
-    +   '<div style="text-align:right">'
-    +     '<div style="font-size:.65rem;color:var(--mu);margin-bottom:6px;letter-spacing:.5px">PROB. VINCITA</div>'
-    +     '<div class="combo-prob-val" style="color:' + tc + '">' + prob + '%</div>'
-    +     '<div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:80px;margin-left:auto">'
-    +       '<div style="height:4px;border-radius:99px;background:' + tc + ';width:' + Math.min(prob,100) + '%;transition:width .8s ease"></div>'
-    +     '</div>'
-    +   '</div>'
-    + '</div>'
-    + picksHtml
-    + '<div class="total-bar">'
-    +   '<div><div class="total-lbl">Quota Totale</div><div class="total-sub">' + m.picks.length + ' eventi · prob. ' + prob + '%</div></div>'
-    +   '<div class="total-val" style="color:' + tc + '">' + m.total_odds + '</div>'
-    + '</div>'
-    + '</div>';
+  var tc=TC[m.target]||TC[3], ico=ICO[m.target]||'⚡', prob=m.combo_probability||0;
+  var dq=(m.picks[0]&&m.picks[0].data_quality)||'';
+  var dqB=dq==='low'?'<span style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:#f97316;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px">⚠️ Dati stimati</span>':'';
+  var ph=''; for(var i=0;i<m.picks.length;i++) ph+=buildPick(m.picks[i],i,tc);
+  return '<div class="panel'+(isFirst?' on':'')+'" data-t="'+m.target+'">'
+    +'<div class="combo-hdr">'
+    +'<div><div class="combo-name">'+ico+' Multipla x'+m.target+dqB+'</div>'
+    +'<div class="combo-quota-val" style="color:'+tc+'">'+m.total_odds+'</div>'
+    +'<div class="combo-picks-sub">'+m.picks.length+' selezioni · '+(m.value_in_combo||0)+' value bet</div></div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:.65rem;color:var(--mu);margin-bottom:6px">PROB. VINCITA</div>'
+    +'<div class="combo-prob-val" style="color:'+tc+'">'+prob+'%</div>'
+    +'<div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:80px;margin-left:auto">'
+    +'<div style="height:4px;border-radius:99px;background:'+tc+';width:'+Math.min(prob,100)+'%;transition:width .8s ease"></div>'
+    +'</div></div></div>'
+    +ph
+    +'<div class="total-bar">'
+    +'<div><div class="total-lbl">Quota Totale</div><div class="total-sub">'+m.picks.length+' eventi · prob. '+prob+'%</div></div>'
+    +'<div class="total-val" style="color:'+tc+'">'+m.total_odds+'</div>'
+    +'</div></div>';
 }
 
 document.getElementById('gbtn').addEventListener('click', async function(){
   var bu = getUrl();
   if(!bu){ showErr('Inserisci il Backend URL di Railway.'); return; }
-  saveUrl();
-  hideErr();
-  document.getElementById('results').innerHTML = '';
+  saveUrl(); hideErr(); dbgClear();
+  document.getElementById('results').innerHTML='';
   document.getElementById('sbar').classList.remove('show');
-
-  var btn = this;
-  btn.disabled = true;
-  btn.innerHTML = '<div class="spin"></div>&nbsp;Analisi in corso...';
-
+  var btn=this; btn.disabled=true; btn.innerHTML='<div class="spin"></div>&nbsp;Analisi...';
+  dbgLine('🚀','dbg-info','Invio richiesta a: '+bu+'/generate');
   try{
-    var resp = await fetch(bu + '/generate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({})
+    var resp = await fetch(bu+'/generate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:'{}',
+      signal: AbortSignal.timeout(120000)
     });
-
-    if(!resp.ok){
-      var errData = await resp.json().catch(function(){ return {}; });
-      showErr(errData.error || 'Errore server: ' + resp.status);
-      btn.disabled = false;
-      btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
-      return;
+    dbgLine('📡','dbg-info','Risposta HTTP: '+resp.status+' '+resp.statusText);
+    var d;
+    try{ d = await resp.json(); }
+    catch(je){
+      dbgLine('❌','dbg-err','Risposta non JSON: '+je.message);
+      showErr('Risposta non valida dal server.');
+      btn.disabled=false; btn.innerHTML='⚽ Genera Multipla'; return;
     }
-
-    var d = await resp.json();
-
-    if(d.error){
-      showErr(d.error);
-      btn.disabled = false;
-      btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
-      return;
+    if(!resp.ok || d.error){
+      var em = d.error || ('Errore HTTP '+resp.status);
+      dbgLine('❌','dbg-err',em); showErr(em);
+      btn.disabled=false; btn.innerHTML='⚽ Genera Multipla'; return;
     }
-
+    dbgLine('✅','dbg-ok','Dati OK: '+d.matches_analyzed+' partite, '+(d.multiples||[]).length+' multipla');
     document.getElementById('sbar').classList.add('show');
-    document.getElementById('sL').textContent = d.leagues_with_data || 0;
-    document.getElementById('sM').textContent = d.matches_analyzed || 0;
-    document.getElementById('sV').textContent = d.value_bets_found || 0;
-
-    var dayLabel = d.day === 'oggi' ? '📅 Partite di Oggi'
-                 : d.day === 'domani' ? '📅 Partite di Domani'
-                 : '📅 Partite di Dopodomani';
-
-    var tabsHtml   = '<div class="tabs">';
-    var panelsHtml = '';
-
-    for(var i=0; i<d.multiples.length; i++){
-      var m       = d.multiples[i];
-      var tc      = TC[m.target] || TC[3];
-      var ico     = ICO[m.target] || '⚡';
-      var isFirst = (i === 0);
-      var activeStyle = isFirst ? ('border-color:' + tc + ';color:' + tc) : '';
-
-      tabsHtml += '<div class="tab' + (isFirst ? ' on' : '') + '" data-t="' + m.target + '"'
-               + ' style="' + activeStyle + '"'
-               + ' onclick="switchTab(' + m.target + ')">'
-               + ico + ' <span class="tq">x' + m.target + '</span>&nbsp;' + m.total_odds
-               + '</div>';
-
-      panelsHtml += buildPanel(m, isFirst);
+    document.getElementById('sL').textContent = d.leagues_with_data||0;
+    document.getElementById('sM').textContent = d.matches_analyzed||0;
+    document.getElementById('sV').textContent = d.value_bets_found||0;
+    var dl = d.day==='oggi'?'📅 Oggi':d.day==='domani'?'📅 Domani':'📅 Dopodomani';
+    var th='<div class="tabs">', ph2='';
+    for(var i=0;i<d.multiples.length;i++){
+      var m=d.multiples[i], tc=TC[m.target]||TC[3], ico=ICO[m.target]||'⚡', fi=(i===0);
+      th+='<div class="tab'+(fi?' on':'')+'" data-t="'+m.target+'"'+(fi?' style="border-color:'+tc+';color:'+tc+'"':'')+' onclick="switchTab('+m.target+')">'
+        +ico+' <span class="tq">x'+m.target+'</span>&nbsp;'+m.total_odds+'</div>';
+      ph2+=buildPanel(m,fi);
     }
-    tabsHtml += '</div>';
-
-    document.getElementById('results').innerHTML =
-      '<div class="day-banner">' + dayLabel + '</div>'
-      + tabsHtml
-      + panelsHtml;
-
+    th+='</div>';
+    document.getElementById('results').innerHTML='<div class="day-banner">'+dl+'</div>'+th+ph2;
+    setTimeout(function(){ document.getElementById('dbg').classList.remove('show'); },4000);
   }catch(e){
-    showErr('Errore connessione: ' + e.message);
-    console.error(e);
+    dbgLine('❌','dbg-err',e.name+': '+e.message);
+    if(e.name==='TimeoutError') dbgLine('⚠️','dbg-warn','Timeout 120s — Railway in sleep o troppo lento');
+    if(e.message.includes('Failed to fetch')) dbgLine('⚠️','dbg-warn','Server non raggiungibile — URL corretto? Railway attivo?');
+    showErr(e.name+': '+e.message);
   }
-
-  btn.disabled = false;
-  btn.innerHTML = '⚽ &nbsp;Genera Tutte le Multipla';
+  btn.disabled=false; btn.innerHTML='⚽ Genera Multipla';
 });
 </script>
 </body>
