@@ -7,333 +7,316 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.1);
+  --g:#00e676;--gb:rgba(0,230,118,.1);
   --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
   --br:rgba(255,255,255,.06);
   --tx:#f1f5ff;--mu:#6b7fa3;--m2:#3d4e6b;
   --ye:#fbbf24;--re:#f43f5e;--or:#f97316;--pu:#a78bfa;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;
-  background:radial-gradient(circle at 20% 20%,rgba(0,230,118,.04) 0%,transparent 50%);
-  pointer-events:none;z-index:0}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.page{position:relative;z-index:1;padding:20px 16px 80px;display:flex;justify-content:center}
+.page{padding:20px 16px 80px;display:flex;justify-content:center}
 .wrap{width:100%;max-width:460px}
 .hdr{padding:16px 0 24px;text-align:center}
-.hdr-chip{display:inline-flex;align-items:center;gap:5px;background:var(--gb);border:1px solid rgba(0,230,118,.15);color:var(--g);font-size:.65rem;font-weight:600;letter-spacing:1.5px;padding:4px 12px;border-radius:99px;margin-bottom:14px;text-transform:uppercase}
-.live-dot{width:5px;height:5px;background:var(--g);border-radius:50%;animation:pulse 1.5s infinite}
-.hdr-title{font-size:2.6rem;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:6px}
-.hdr-title span{background:linear-gradient(135deg,var(--tx) 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hdr-sub{color:var(--mu);font-size:.75rem}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--gb);border:1px solid rgba(0,230,118,.15);color:var(--g);font-size:.65rem;font-weight:600;letter-spacing:1.5px;padding:4px 12px;border-radius:99px;margin-bottom:14px;text-transform:uppercase}
+.dot{width:5px;height:5px;background:var(--g);border-radius:50%;animation:pulse 1.5s infinite}
+h1{font-size:2.4rem;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+h1 span{background:linear-gradient(135deg,var(--tx) 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{color:var(--mu);font-size:.75rem}
 .card{background:var(--c1);border:1px solid var(--br);border-radius:18px;padding:18px;margin-bottom:10px}
-.field-label{color:var(--mu);font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
-input[type=text]{width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;padding:11px 13px;color:var(--tx);font-size:.82rem;outline:none;font-family:'Outfit',monospace;transition:all .2s}
-input::placeholder{color:var(--m2)}
-input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
-.saved-tag{color:var(--g);font-size:.65rem;font-weight:600;display:none;align-items:center;gap:3px;margin-top:5px}
-.saved-tag.show{display:inline-flex}
-.field-hint{color:var(--m2);font-size:.65rem;margin-top:8px;line-height:1.6}
-.field-hint a{color:var(--g);text-decoration:none}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.gbtn{width:100%;background:var(--g);border:none;border-radius:14px;padding:14px 10px;color:#000;font-weight:700;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Outfit',sans-serif;transition:all .2s}
-.gbtn:disabled{opacity:.45;cursor:not-allowed}
-.tbtn{width:100%;background:transparent;border:1px solid rgba(56,189,248,.3);border-radius:14px;padding:14px 10px;color:#38bdf8;font-weight:600;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Outfit',sans-serif;transition:all .2s}
-.tbtn:disabled{opacity:.45;cursor:not-allowed}
-.rbtn{width:100%;background:transparent;border:1px solid rgba(244,63,94,.25);border-radius:12px;padding:10px;color:#fb7185;font-weight:600;font-size:.75rem;cursor:pointer;font-family:'Outfit',sans-serif;margin-bottom:10px;transition:all .2s}
-.spin{width:14px;height:14px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-.spin-bl{width:14px;height:14px;border:2px solid rgba(56,189,248,.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-.dbg{background:rgba(0,0,0,.4);border:1px solid var(--br);border-radius:14px;padding:12px 14px;margin-bottom:10px;display:none}
-.dbg.show{display:block}
-.dbg-title{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;color:var(--mu)}
-.dbg-line{font-size:.72rem;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;align-items:flex-start;gap:8px;line-height:1.4}
-.dbg-line:last-child{border-bottom:none}
-.dbg-ico{flex-shrink:0}
-.dbg-ok{color:var(--g)}.dbg-err{color:var(--re)}.dbg-warn{color:var(--ye)}.dbg-info{color:#38bdf8}
-.err{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:13px 15px;color:#fb7185;font-size:.8rem;margin-bottom:12px;display:none;gap:8px;align-items:flex-start}
-.err.show{display:flex}
-.stats{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
-.stats.show{display:grid}
-.stat-card{background:var(--c1);border:1px solid var(--br);border-radius:14px;padding:12px 8px;text-align:center}
-.stat-n{font-size:1.7rem;font-weight:800;color:var(--g);line-height:1}
-.stat-l{color:var(--mu);font-size:.6rem;font-weight:500;letter-spacing:.5px;margin-top:3px;text-transform:uppercase}
-.day-banner{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--mu);font-size:.7rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
-.day-banner::before,.day-banner::after{content:'';flex:1;height:1px;background:var(--br)}
+.lbl{color:var(--mu);font-size:.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
+input{width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;padding:11px 13px;color:var(--tx);font-size:.82rem;outline:none;font-family:monospace}
+input:focus{border-color:rgba(0,230,118,.35)}
+.hint{color:var(--m2);font-size:.65rem;margin-top:6px}
+.hint a{color:var(--g);text-decoration:none}
+.sv{color:var(--g);font-size:.65rem;font-weight:600;display:none;margin-top:4px}
+.sv.on{display:block}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.g{background:var(--g);border:none;border-radius:14px;padding:14px 8px;color:#000;font-weight:700;font-size:.85rem;cursor:pointer;width:100%;font-family:'Outfit',sans-serif}
+.g:disabled{opacity:.4;cursor:not-allowed}
+.t{background:transparent;border:1px solid rgba(56,189,248,.35);border-radius:14px;padding:14px 8px;color:#38bdf8;font-weight:600;font-size:.85rem;cursor:pointer;width:100%;font-family:'Outfit',sans-serif}
+.t:disabled{opacity:.4;cursor:not-allowed}
+.r{background:transparent;border:1px solid rgba(244,63,94,.2);border-radius:12px;padding:9px;color:#fb7185;font-weight:600;font-size:.75rem;cursor:pointer;width:100%;font-family:'Outfit',sans-serif;margin-bottom:8px}
+.sp{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.sp2{display:inline-block;width:13px;height:13px;border:2px solid rgba(56,189,248,.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.dbg{background:rgba(0,0,0,.5);border:1px solid var(--br);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:none;font-size:.72rem;line-height:1.7}
+.dbg.on{display:block}
+.ok{color:var(--g)}.er{color:var(--re)}.wa{color:var(--ye)}.inf{color:#38bdf8}
+.err{background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);border-radius:14px;padding:12px 14px;color:#fb7185;font-size:.8rem;margin-bottom:8px;display:none}
+.err.on{display:block}
+.stats{display:none;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stats.on{display:grid}
+.sc{background:var(--c1);border:1px solid var(--br);border-radius:14px;padding:12px 8px;text-align:center}
+.sn{font-size:1.7rem;font-weight:800;color:var(--g);line-height:1}
+.sl{color:var(--mu);font-size:.6rem;font-weight:500;margin-top:3px;text-transform:uppercase}
+.day{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:var(--mu);font-size:.7rem;font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+.day::before,.day::after{content:'';flex:1;height:1px;background:var(--br)}
 .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:8px 14px;border-radius:99px;border:1px solid var(--br);background:var(--c1);color:var(--mu);font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap}
-.tab .tq{font-weight:800}
+.tab{flex-shrink:0;padding:8px 14px;border-radius:99px;border:1px solid var(--br);background:var(--c1);color:var(--mu);font-size:.75rem;font-weight:600;cursor:pointer;white-space:nowrap}
 .panel{display:none;animation:up .25s ease}
 .panel.on{display:block}
-.combo-hdr{display:flex;justify-content:space-between;align-items:flex-start;background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:16px;margin-bottom:10px}
-.combo-quota-val{font-size:1.8rem;font-weight:900;line-height:1;letter-spacing:-1px}
-.combo-picks-sub{font-size:.72rem;color:var(--m2);margin-top:4px}
-.combo-prob-val{font-size:2rem;font-weight:900;line-height:1}
-.combo-name{font-size:.65rem;font-weight:600;color:var(--mu);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
-.pick{background:var(--c2);border:1px solid var(--br);border-radius:14px;padding:14px;margin-bottom:8px;position:relative;overflow:hidden}
-.pick-accent{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-.pick-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.pick-league{font-size:.65rem;font-weight:600;letter-spacing:.5px}
-.pick-time{font-size:.62rem;color:var(--mu)}
-.pick-body{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.pick-idx{width:22px;height:22px;border-radius:7px;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pick-txt{flex:1;min-width:0}
-.pick-match{font-weight:600;font-size:.84rem;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pick-market{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--mu)}
-.pick-odd{font-size:1.4rem;font-weight:900;color:var(--ye);letter-spacing:-0.5px;flex-shrink:0}
-.vbdg{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--g);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:5px}
-.nvbdg{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);color:var(--or);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:5px}
-.pick-bars{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.bar-row{display:flex;align-items:center;gap:8px}
-.bar-lbl{font-size:.62rem;color:var(--mu);width:62px;flex-shrink:0}
-.bar-track{flex:1;background:rgba(255,255,255,.05);border-radius:99px;height:4px}
-.bar-fill{height:4px;border-radius:99px;transition:width .7s ease}
-.bar-val{font-size:.63rem;color:var(--g);font-weight:700;width:28px;text-align:right;flex-shrink:0}
-.pick-minis{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding-top:10px;border-top:1px solid var(--br)}
-.mini{background:rgba(255,255,255,.02);border-radius:8px;padding:6px;text-align:center}
-.mini-v{font-size:.8rem;font-weight:700}
-.mini-v.ok{color:var(--g)}.mini-v.warn{color:var(--ye)}.mini-v.bad{color:var(--re)}
-.mini-l{font-size:.58rem;color:var(--mu);margin-top:1px}
-.total-bar{display:flex;justify-content:space-between;align-items:center;background:var(--gb);border:1px solid rgba(0,230,118,.15);border-radius:14px;padding:14px 16px;margin-top:4px}
-.total-lbl{font-size:.62rem;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase}
-.total-sub{font-size:.6rem;color:var(--m2);margin-top:3px}
-.total-val{font-size:2.4rem;font-weight:900;letter-spacing:-1px;line-height:1}
+.ch{display:flex;justify-content:space-between;align-items:flex-start;background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:16px;margin-bottom:10px}
+.cnm{font-size:.65rem;font-weight:600;color:var(--mu);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.cqv{font-size:1.8rem;font-weight:900;line-height:1;letter-spacing:-1px}
+.cps{font-size:.72rem;color:var(--m2);margin-top:4px}
+.cpv{font-size:2rem;font-weight:900;line-height:1}
+.pk{background:var(--c2);border:1px solid var(--br);border-radius:14px;padding:14px;margin-bottom:8px;position:relative;overflow:hidden}
+.pka{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.pkh{display:flex;justify-content:space-between;margin-bottom:8px}
+.pklg{font-size:.65rem;font-weight:600}
+.pktm{font-size:.62rem;color:var(--mu)}
+.pkb{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pki{width:22px;height:22px;border-radius:7px;background:rgba(255,255,255,.04);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pkt{flex:1;min-width:0}
+.pkm{font-weight:600;font-size:.84rem;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkk{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--mu)}
+.pko{font-size:1.4rem;font-weight:900;color:var(--ye);letter-spacing:-.5px;flex-shrink:0}
+.vb{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--g);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:5px}
+.nvb{background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);color:var(--or);font-size:.58rem;font-weight:700;padding:1px 6px;border-radius:5px}
+.bars{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.br2{display:flex;align-items:center;gap:8px}
+.bl{font-size:.62rem;color:var(--mu);width:62px;flex-shrink:0}
+.bt{flex:1;background:rgba(255,255,255,.05);border-radius:99px;height:4px}
+.bf{height:4px;border-radius:99px}
+.bv{font-size:.63rem;color:var(--g);font-weight:700;width:28px;text-align:right;flex-shrink:0}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding-top:10px;border-top:1px solid var(--br)}
+.mn{background:rgba(255,255,255,.02);border-radius:8px;padding:6px;text-align:center}
+.mv{font-size:.8rem;font-weight:700}
+.mv.ok{color:var(--g)}.mv.wa{color:var(--ye)}.mv.er{color:var(--re)}
+.ml{font-size:.58rem;color:var(--mu);margin-top:1px}
+.tb{display:flex;justify-content:space-between;align-items:center;background:var(--gb);border:1px solid rgba(0,230,118,.15);border-radius:14px;padding:14px 16px;margin-top:4px}
+.tbl{font-size:.62rem;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase}
+.tbs{font-size:.6rem;color:var(--m2);margin-top:3px}
+.tbv{font-size:2.4rem;font-weight:900;letter-spacing:-1px;line-height:1}
 </style>
 </head>
 <body>
 <div class="page"><div class="wrap">
 
 <div class="hdr">
-  <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
-  <h1 class="hdr-title"><span>Scommettiamo</span></h1>
-  <p class="hdr-sub">Poisson · Dixon-Coles · SofaScore</p>
+  <div class="chip"><span class="dot"></span>Live Analysis</div>
+  <h1><span>Scommettiamo</span></h1>
+  <p class="sub">Poisson · Dixon-Coles · SofaScore</p>
 </div>
 
 <div class="card">
-  <span class="field-label">Backend URL (Railway)</span>
-  <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
-  <span class="saved-tag" id="urlSaved">✓ Salvato</span>
-  <div class="field-hint">Incolla qui il tuo URL Railway. <a href="https://railway.app" target="_blank">Railway →</a></div>
+  <span class="lbl">Backend URL Railway</span>
+  <input type="text" id="BU" placeholder="https://tuoapp.up.railway.app" oninput="salva()">
+  <div class="sv" id="SV">✓ Salvato</div>
+  <div class="hint">Incolla qui il tuo URL. <a href="https://railway.app" target="_blank">Railway →</a></div>
 </div>
 
-<div class="btn-row">
-  <button class="gbtn" id="gbtn">⚽ Genera Multipla</button>
-  <button class="tbtn" id="tbtn">🔌 Test Connessione</button>
+<div class="row2">
+  <button class="g" id="GB" onclick="genera()">⚽ Genera Multipla</button>
+  <button class="t" id="TB" onclick="testConn()">🔌 Test</button>
 </div>
-<button class="rbtn" id="rbtn">🗑️ Svuota Cache DB</button>
+<button class="r" id="RB" onclick="resetCache()">🗑️ Svuota Cache</button>
 
-<div class="dbg" id="dbg">
-  <div class="dbg-title">🔍 Debug</div>
-  <div id="dbgLines"></div>
-</div>
+<div class="dbg" id="DB"></div>
+<div class="err" id="EB"></div>
 
-<div class="err" id="errBox"><span>⚠️</span><span id="errMsg">Errore</span></div>
-
-<div class="stats" id="sbar">
-  <div class="stat-card"><div class="stat-n" id="sL">0</div><div class="stat-l">Campionati</div></div>
-  <div class="stat-card"><div class="stat-n" id="sM">0</div><div class="stat-l">Partite</div></div>
-  <div class="stat-card"><div class="stat-n" id="sV">0</div><div class="stat-l">Value Bet</div></div>
+<div class="stats" id="ST">
+  <div class="sc"><div class="sn" id="SL">0</div><div class="sl">Campionati</div></div>
+  <div class="sc"><div class="sn" id="SM">0</div><div class="sl">Partite</div></div>
+  <div class="sc"><div class="sn" id="SV2">0</div><div class="sl">Value Bet</div></div>
 </div>
 
-<div id="results"></div>
+<div id="RES"></div>
 </div></div>
 
 <script>
-var TC  = {3:'#00e676', 5:'#fbbf24', 8:'#f97316', 10:'#f43f5e', 100:'#a78bfa'};
-var ICO = {3:'🟢', 5:'🟡', 8:'🟠', 10:'🔴', 100:'💀'};
+var TC={3:'#00e676',5:'#fbbf24',8:'#f97316',10:'#f43f5e',100:'#a78bfa'};
+var IC={3:'🟢',5:'🟡',8:'🟠',10:'🔴',100:'💀'};
 
-function getUrl(){ return document.getElementById('backendUrl').value.trim().replace(//+$/,''); }
-function saveUrl(){
-  var u = getUrl();
-  if(u){ localStorage.setItem('bu',u); document.getElementById('urlSaved').classList.add('show'); }
-}
-document.getElementById('backendUrl').addEventListener('input', saveUrl);
-window.addEventListener('load', function(){
-  var s = localStorage.getItem('bu');
-  if(s){ document.getElementById('backendUrl').value=s; document.getElementById('urlSaved').classList.add('show'); }
-});
+function getUrl(){return document.getElementById('BU').value.trim().replace(//+$/,'');}
+function salva(){var u=getUrl();if(u){localStorage.setItem('bu',u);document.getElementById('SV').className='sv on';}}
+(function(){var s=localStorage.getItem('bu');if(s){document.getElementById('BU').value=s;document.getElementById('SV').className='sv on';}})();
 
-function showErr(m){ document.getElementById('errMsg').textContent=m; document.getElementById('errBox').classList.add('show'); }
-function hideErr(){ document.getElementById('errBox').classList.remove('show'); }
+function log(ico,cls,t){var d=document.getElementById('DB');d.className='dbg on';d.innerHTML+=('<div><span>'+ico+' </span><span class="'+cls+'">'+t+'</span></div>');}
+function logClear(){var d=document.getElementById('DB');d.innerHTML='';d.className='dbg on';}
+function showE(m){var e=document.getElementById('EB');e.textContent=m;e.className='err on';}
+function hideE(){document.getElementById('EB').className='err';}
+function fmtD(iso){if(!iso)return'';try{return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
 
-function dbgClear(){ document.getElementById('dbgLines').innerHTML=''; document.getElementById('dbg').classList.add('show'); }
-function dbgLine(ico, cls, txt){
-  var d = document.getElementById('dbgLines');
-  var el = document.createElement('div');
-  el.className = 'dbg-line';
-  el.innerHTML = '<span class="dbg-ico">'+ico+'</span><span class="'+cls+'">'+txt+'</span>';
-  d.appendChild(el);
+function sw(t){
+  var tabs=document.querySelectorAll('.tab');
+  var pans=document.querySelectorAll('.panel');
+  for(var i=0;i<tabs.length;i++){tabs[i].style.borderColor='';tabs[i].style.color='';}
+  for(var i=0;i<pans.length;i++){pans[i].className='panel';}
+  var st=document.querySelector('.tab[data-t="'+t+'"]');
+  var sp=document.querySelector('.panel[data-t="'+t+'"]');
+  if(st){st.style.borderColor=TC[t]||TC[3];st.style.color=TC[t]||TC[3];}
+  if(sp){sp.className='panel on';}
 }
 
-function fmtDate(iso){
-  if(!iso) return '';
-  try{ return new Date(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
-  catch(e){ return ''; }
+function testConn(){
+  var bu=getUrl();
+  if(!bu){showE('Inserisci il Backend URL.');return;}
+  salva();hideE();logClear();
+  var btn=document.getElementById('TB');
+  btn.disabled=true;btn.innerHTML='<span class="sp2"></span> Test...';
+  log('🔗','inf','Connessione a: '+bu);
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=10000;
+  xhr.open('GET',bu+'/health',true);
+  xhr.onload=function(){
+    if(xhr.status===200){
+      try{
+        var d=JSON.parse(xhr.responseText);
+        log('✅','ok','Server OK');
+        log('✅','ok','Squadre cache: '+d.team_stats_cached);
+        log('✅','ok','Railway attivo — premi Genera');
+      }catch(e){log('✅','ok','Server risponde HTTP 200');}
+    }else{log('❌','er','HTTP '+xhr.status);}
+    btn.disabled=false;btn.innerHTML='🔌 Test';
+  };
+  xhr.onerror=function(){
+    log('❌','er','Impossibile raggiungere il server');
+    log('→','wa','URL sbagliato? Railway spento? CORS?');
+    btn.disabled=false;btn.innerHTML='🔌 Test';
+  };
+  xhr.ontimeout=function(){
+    log('⚠️','wa','Timeout — Railway in sleep, attendi 30s e riprova');
+    btn.disabled=false;btn.innerHTML='🔌 Test';
+  };
+  xhr.send();
 }
 
-function switchTab(t){
-  document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('on'); x.style.borderColor=''; x.style.color=''; });
-  document.querySelectorAll('.panel').forEach(function(x){ x.classList.remove('on'); });
-  var st = document.querySelector('.tab[data-t="'+t+'"]');
-  var sp = document.querySelector('.panel[data-t="'+t+'"]');
-  if(st){ st.classList.add('on'); st.style.borderColor=TC[t]||TC[3]; st.style.color=TC[t]||TC[3]; }
-  if(sp) sp.classList.add('on');
+function resetCache(){
+  var bu=getUrl();
+  if(!bu){showE('Inserisci prima il Backend URL.');return;}
+  var btn=document.getElementById('RB');
+  btn.disabled=true;btn.textContent='⏳ Pulizia...';
+  var xhr=new XMLHttpRequest();
+  xhr.open('POST',bu+'/reset-cache',true);
+  xhr.setRequestHeader('Content-Type','application/json');
+  xhr.onload=function(){
+    if(xhr.status===200){
+      btn.textContent='✅ Cache svuotata!';btn.style.color='#00e676';
+      setTimeout(function(){btn.textContent='🗑️ Svuota Cache';btn.style.color='';},3000);
+    }else{showE('Errore reset: HTTP '+xhr.status);}
+    btn.disabled=false;
+  };
+  xhr.onerror=function(){showE('Errore connessione reset');btn.disabled=false;};
+  xhr.send('{}');
 }
 
-document.getElementById('tbtn').addEventListener('click', async function(){
-  var bu = getUrl();
-  if(!bu){ showErr('Inserisci prima il Backend URL.'); return; }
-  saveUrl(); hideErr(); dbgClear();
-  this.disabled=true; this.innerHTML='<div class="spin-bl"></div>&nbsp;Test...';
-  dbgLine('🔗','dbg-info','Connessione a: '+bu);
-  try{
-    var t0 = Date.now();
-    var r = await fetch(bu+'/health', {method:'GET', signal: AbortSignal.timeout(10000)});
-    var ms = Date.now()-t0;
-    if(r.ok){
-      var d = await r.json();
-      dbgLine('✅','dbg-ok','Server raggiunto in '+ms+'ms');
-      dbgLine('✅','dbg-ok','Squadre in cache: '+d.team_stats_cached);
-      dbgLine('✅','dbg-ok','Richieste log: '+d.requests_logged);
-      dbgLine('✅','dbg-ok','Railway OK — ora premi Genera Multipla');
-    } else {
-      dbgLine('❌','dbg-err','HTTP '+r.status+' — il server ha risposto con errore');
-    }
-  }catch(e){
-    dbgLine('❌','dbg-err','ERRORE: '+e.message);
-    if(e.message.includes('Failed to fetch')||e.message.includes('NetworkError')){
-      dbgLine('→','dbg-warn','1. URL Railway sbagliato o servizio spento');
-      dbgLine('→','dbg-warn','2. Railway in sleep — riavvialo dalla dashboard');
-      dbgLine('→','dbg-warn','3. CORS non abilitato nel backend');
-    }
-    if(e.name==='TimeoutError'){ dbgLine('⚠️','dbg-warn','Timeout — Railway in sleep, attendi 30s e riprova'); }
-  }
-  this.disabled=false; this.innerHTML='🔌 Test Connessione';
-});
-
-document.getElementById('rbtn').addEventListener('click', async function(){
-  var bu = getUrl();
-  if(!bu){ showErr('Inserisci prima il Backend URL.'); return; }
-  hideErr(); this.textContent='⏳ Pulizia...'; this.disabled=true;
-  try{
-    var r = await fetch(bu+'/reset-cache',{method:'POST'});
-    var d = await r.json();
-    if(d.status==='ok'){
-      this.textContent='✅ Cache svuotata!'; this.style.color='#00e676';
-      var b=this; setTimeout(function(){ b.textContent='🗑️ Svuota Cache DB'; b.style.color=''; },3000);
-    }
-  }catch(e){ showErr('Errore: '+e.message); }
-  this.disabled=false;
-});
-
-function buildPick(p, idx, tc){
+function buildPick(p,idx,tc){
   var pct=Math.round(p.prob*100);
   var o25=Math.round(((p.probs&&p.probs.over25)||0)*100);
   var gg=Math.round(((p.probs&&p.probs.gg)||0)*100);
   var eg=p.exp_g||'—';
-  var ec=parseFloat(eg)>2.5?'ok':parseFloat(eg)>1.8?'warn':'bad';
-  var isVal=p.edge>0.02;
-  var badge=isVal?'<span class="vbdg">VALUE</span>':'<span class="nvbdg">NO VALUE</span>';
+  var ec=parseFloat(eg)>2.5?'ok':parseFloat(eg)>1.8?'wa':'er';
+  var badge=p.edge>0.02?'<span class="vb">VALUE</span>':'<span class="nvb">NO VALUE</span>';
   var fh=Math.round((p.home_form||0)*100);
   var fa=Math.round((p.away_form||0)*100);
-  return '<div class="pick">'
-    +'<div class="pick-accent" style="background:'+tc+'"></div>'
-    +'<div class="pick-head"><span class="pick-league" style="color:'+tc+'">'+p.league+'</span><span class="pick-time">'+fmtDate(p.commence_time)+'</span></div>'
-    +'<div class="pick-body">'
-    +'<div class="pick-idx" style="background:rgba(255,255,255,.04);color:'+tc+'">'+(idx+1)+'</div>'
-    +'<div class="pick-txt"><div class="pick-match">'+p.match+'</div><div class="pick-market">'+p.name+' '+badge+'</div></div>'
-    +'<div class="pick-odd">@'+p.odds+'</div>'
+  return '<div class="pk">'
+    +'<div class="pka" style="background:'+tc+'"></div>'
+    +'<div class="pkh"><span class="pklg" style="color:'+tc+'">'+p.league+'</span><span class="pktm">'+fmtD(p.commence_time)+'</span></div>'
+    +'<div class="pkb">'
+    +'<div class="pki" style="color:'+tc+'">'+(idx+1)+'</div>'
+    +'<div class="pkt"><div class="pkm">'+p.match+'</div><div class="pkk">'+p.name+' '+badge+'</div></div>'
+    +'<div class="pko">@'+p.odds+'</div>'
     +'</div>'
-    +'<div class="pick-bars">'
-    +'<div class="bar-row"><span class="bar-lbl">Probabilità</span><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+tc+'"></div></div><span class="bar-val" style="color:'+tc+'">'+pct+'%</span></div>'
-    +'<div class="bar-row"><span class="bar-lbl">Over 2.5</span><div class="bar-track"><div class="bar-fill" style="width:'+o25+'%;background:'+tc+'"></div></div><span class="bar-val">'+o25+'%</span></div>'
-    +'<div class="bar-row"><span class="bar-lbl">GG</span><div class="bar-track"><div class="bar-fill" style="width:'+gg+'%;background:'+tc+'"></div></div><span class="bar-val">'+gg+'%</span></div>'
+    +'<div class="bars">'
+    +'<div class="br2"><span class="bl">Probabilità</span><div class="bt"><div class="bf" style="width:'+pct+'%;background:'+tc+'"></div></div><span class="bv" style="color:'+tc+'">'+pct+'%</span></div>'
+    +'<div class="br2"><span class="bl">Over 2.5</span><div class="bt"><div class="bf" style="width:'+o25+'%;background:'+tc+'"></div></div><span class="bv">'+o25+'%</span></div>'
+    +'<div class="br2"><span class="bl">GG</span><div class="bt"><div class="bf" style="width:'+gg+'%;background:'+tc+'"></div></div><span class="bv">'+gg+'%</span></div>'
     +'</div>'
-    +'<div class="pick-minis">'
-    +'<div class="mini"><div class="mini-v '+ec+'">'+eg+'</div><div class="mini-l">Gol attesi</div></div>'
-    +'<div class="mini"><div class="mini-v">'+fh+'%</div><div class="mini-l">Forma casa</div></div>'
-    +'<div class="mini"><div class="mini-v">'+fa+'%</div><div class="mini-l">Trasferta</div></div>'
+    +'<div class="minis">'
+    +'<div class="mn"><div class="mv '+ec+'">'+eg+'</div><div class="ml">Gol attesi</div></div>'
+    +'<div class="mn"><div class="mv">'+fh+'%</div><div class="ml">Forma casa</div></div>'
+    +'<div class="mn"><div class="mv">'+fa+'%</div><div class="ml">Trasferta</div></div>'
     +'</div></div>';
 }
 
-function buildPanel(m, isFirst){
-  var tc=TC[m.target]||TC[3], ico=ICO[m.target]||'⚡', prob=m.combo_probability||0;
-  var dq=(m.picks[0]&&m.picks[0].data_quality)||'';
-  var dqB=dq==='low'?'<span style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.2);color:#f97316;font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px">⚠️ Dati stimati</span>':'';
-  var ph=''; for(var i=0;i<m.picks.length;i++) ph+=buildPick(m.picks[i],i,tc);
-  return '<div class="panel'+(isFirst?' on':'')+'" data-t="'+m.target+'">'
-    +'<div class="combo-hdr">'
-    +'<div><div class="combo-name">'+ico+' Multipla x'+m.target+dqB+'</div>'
-    +'<div class="combo-quota-val" style="color:'+tc+'">'+m.total_odds+'</div>'
-    +'<div class="combo-picks-sub">'+m.picks.length+' selezioni · '+(m.value_in_combo||0)+' value bet</div></div>'
+function buildPanel(m,first){
+  var tc=TC[m.target]||TC[3],ico=IC[m.target]||'⚡',prob=m.combo_probability||0;
+  var ph='';for(var i=0;i<m.picks.length;i++)ph+=buildPick(m.picks[i],i,tc);
+  return '<div class="panel'+(first?' on':'')+'" data-t="'+m.target+'">'
+    +'<div class="ch">'
+    +'<div><div class="cnm">'+ico+' Multipla x'+m.target+'</div>'
+    +'<div class="cqv" style="color:'+tc+'">'+m.total_odds+'</div>'
+    +'<div class="cps">'+m.picks.length+' selezioni · '+(m.value_in_combo||0)+' value</div></div>'
     +'<div style="text-align:right">'
-    +'<div style="font-size:.65rem;color:var(--mu);margin-bottom:6px">PROB. VINCITA</div>'
-    +'<div class="combo-prob-val" style="color:'+tc+'">'+prob+'%</div>'
-    +'<div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:80px;margin-left:auto">'
-    +'<div style="height:4px;border-radius:99px;background:'+tc+';width:'+Math.min(prob,100)+'%;transition:width .8s ease"></div>'
+    +'<div style="font-size:.62rem;color:var(--mu);margin-bottom:4px">PROB. VINCITA</div>'
+    +'<div class="cpv" style="color:'+tc+'">'+prob+'%</div>'
+    +'<div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;margin-top:8px;width:70px;margin-left:auto">'
+    +'<div style="height:4px;border-radius:99px;background:'+tc+';width:'+Math.min(prob,100)+'%"></div>'
     +'</div></div></div>'
     +ph
-    +'<div class="total-bar">'
-    +'<div><div class="total-lbl">Quota Totale</div><div class="total-sub">'+m.picks.length+' eventi · prob. '+prob+'%</div></div>'
-    +'<div class="total-val" style="color:'+tc+'">'+m.total_odds+'</div>'
+    +'<div class="tb">'
+    +'<div><div class="tbl">Quota Totale</div><div class="tbs">'+m.picks.length+' eventi · '+prob+'%</div></div>'
+    +'<div class="tbv" style="color:'+tc+'">'+m.total_odds+'</div>'
     +'</div></div>';
 }
 
-document.getElementById('gbtn').addEventListener('click', async function(){
-  var bu = getUrl();
-  if(!bu){ showErr('Inserisci il Backend URL di Railway.'); return; }
-  saveUrl(); hideErr(); dbgClear();
-  document.getElementById('results').innerHTML='';
-  document.getElementById('sbar').classList.remove('show');
-  var btn=this; btn.disabled=true; btn.innerHTML='<div class="spin"></div>&nbsp;Analisi...';
-  dbgLine('🚀','dbg-info','Invio richiesta a: '+bu+'/generate');
-  try{
-    var resp = await fetch(bu+'/generate', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:'{}',
-      signal: AbortSignal.timeout(120000)
-    });
-    dbgLine('📡','dbg-info','Risposta HTTP: '+resp.status+' '+resp.statusText);
+function genera(){
+  var bu=getUrl();
+  if(!bu){showE('Inserisci il Backend URL di Railway.');return;}
+  salva();hideE();logClear();
+  document.getElementById('RES').innerHTML='';
+  document.getElementById('ST').className='stats';
+  var btn=document.getElementById('GB');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span> Analisi...';
+  log('🚀','inf','POST '+bu+'/generate');
+
+  var xhr=new XMLHttpRequest();
+  xhr.timeout=120000;
+  xhr.open('POST',bu+'/generate',true);
+  xhr.setRequestHeader('Content-Type','application/json');
+
+  xhr.onload=function(){
+    log('📡','inf','HTTP '+xhr.status);
     var d;
-    try{ d = await resp.json(); }
-    catch(je){
-      dbgLine('❌','dbg-err','Risposta non JSON: '+je.message);
-      showErr('Risposta non valida dal server.');
-      btn.disabled=false; btn.innerHTML='⚽ Genera Multipla'; return;
+    try{d=JSON.parse(xhr.responseText);}
+    catch(e){
+      log('❌','er','Risposta non JSON');
+      showE('Risposta non valida dal server.');
+      btn.disabled=false;btn.innerHTML='⚽ Genera Multipla';return;
     }
-    if(!resp.ok || d.error){
-      var em = d.error || ('Errore HTTP '+resp.status);
-      dbgLine('❌','dbg-err',em); showErr(em);
-      btn.disabled=false; btn.innerHTML='⚽ Genera Multipla'; return;
+    if(xhr.status!==200||d.error){
+      var em=d.error||'Errore HTTP '+xhr.status;
+      log('❌','er',em);showE(em);
+      btn.disabled=false;btn.innerHTML='⚽ Genera Multipla';return;
     }
-    dbgLine('✅','dbg-ok','Dati OK: '+d.matches_analyzed+' partite, '+(d.multiples||[]).length+' multipla');
-    document.getElementById('sbar').classList.add('show');
-    document.getElementById('sL').textContent = d.leagues_with_data||0;
-    document.getElementById('sM').textContent = d.matches_analyzed||0;
-    document.getElementById('sV').textContent = d.value_bets_found||0;
-    var dl = d.day==='oggi'?'📅 Oggi':d.day==='domani'?'📅 Domani':'📅 Dopodomani';
-    var th='<div class="tabs">', ph2='';
+    log('✅','ok','OK: '+d.matches_analyzed+' partite, '+(d.multiples||[]).length+' multipla');
+    document.getElementById('ST').className='stats on';
+    document.getElementById('SL').textContent=d.leagues_with_data||0;
+    document.getElementById('SM').textContent=d.matches_analyzed||0;
+    document.getElementById('SV2').textContent=d.value_bets_found||0;
+    var dl=d.day==='oggi'?'📅 Oggi':d.day==='domani'?'📅 Domani':'📅 Dopodomani';
+    var th='<div class="tabs">',ph='';
     for(var i=0;i<d.multiples.length;i++){
-      var m=d.multiples[i], tc=TC[m.target]||TC[3], ico=ICO[m.target]||'⚡', fi=(i===0);
-      th+='<div class="tab'+(fi?' on':'')+'" data-t="'+m.target+'"'+(fi?' style="border-color:'+tc+';color:'+tc+'"':'')+' onclick="switchTab('+m.target+')">'
-        +ico+' <span class="tq">x'+m.target+'</span>&nbsp;'+m.total_odds+'</div>';
-      ph2+=buildPanel(m,fi);
+      var m=d.multiples[i],tc=TC[m.target]||TC[3],ic=IC[m.target]||'⚡',fi=(i===0);
+      th+='<div class="tab'+(fi?' on':'')+'" data-t="'+m.target+'"'
+        +(fi?' style="border-color:'+tc+';color:'+tc+'"':'')+' onclick="sw('+m.target+')">'
+        +ic+' x'+m.target+' '+m.total_odds+'</div>';
+      ph+=buildPanel(m,fi);
     }
     th+='</div>';
-    document.getElementById('results').innerHTML='<div class="day-banner">'+dl+'</div>'+th+ph2;
-    setTimeout(function(){ document.getElementById('dbg').classList.remove('show'); },4000);
-  }catch(e){
-    dbgLine('❌','dbg-err',e.name+': '+e.message);
-    if(e.name==='TimeoutError') dbgLine('⚠️','dbg-warn','Timeout 120s — Railway in sleep o troppo lento');
-    if(e.message.includes('Failed to fetch')) dbgLine('⚠️','dbg-warn','Server non raggiungibile — URL corretto? Railway attivo?');
-    showErr(e.name+': '+e.message);
-  }
-  btn.disabled=false; btn.innerHTML='⚽ Genera Multipla';
-});
+    document.getElementById('RES').innerHTML='<div class="day">'+dl+'</div>'+th+ph;
+    setTimeout(function(){document.getElementById('DB').className='dbg';},3000);
+    btn.disabled=false;btn.innerHTML='⚽ Genera Multipla';
+  };
+
+  xhr.onerror=function(){
+    log('❌','er','Connessione fallita');
+    log('→','wa','Controlla URL Railway e che il servizio sia attivo');
+    showE('Impossibile connettersi al server.');
+    btn.disabled=false;btn.innerHTML='⚽ Genera Multipla';
+  };
+  xhr.ontimeout=function(){
+    log('⚠️','wa','Timeout 120s — Railway non risponde');
+    showE('Timeout: Railway non risponde.');
+    btn.disabled=false;btn.innerHTML='⚽ Genera Multipla';
+  };
+  xhr.send('{}');
+}
 </script>
 </body>
 </html>
