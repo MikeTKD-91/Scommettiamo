@@ -307,7 +307,9 @@ def get_event_odds(event_id):
     if not data: return {}
     odds = {}
     for mkt in data.get("markets", []):
-        mkt_name = mkt.get("marketName", "") or mkt.get("name", "")
+        mkt_lc = (mkt.get("marketName", "") or mkt.get("name", "")).strip().lower()
+        is_o25 = "2.5" in mkt_lc
+        is_o15 = "1.5" in mkt_lc and "2.5" not in mkt_lc
         for ch in mkt.get("choices", []):
             name = ch.get("name", "")
             frac = ch.get("fractionalValue") or ch.get("initialFractionalValue")
@@ -317,18 +319,16 @@ def get_event_odds(event_id):
                     dec = round(int(n) / int(d) + 1, 3)
                     if dec > 1:
                         odds[name] = dec
-                        # Normalizza varianti Over 2.5
                         nl = name.strip().lower()
-                        if nl in ("over 2.5", "over2.5", "over", "+2.5", "2.5+", "o2.5"):
+                        # Over 2.5 â€” solo se il mercato contiene "2.5" OPPURE il nome e' esplicito
+                        if nl in ("over 2.5", "over2.5") or (is_o25 and nl == "over"):
                             odds["Over 2.5"] = dec
-                        if nl in ("under 2.5", "under2.5", "under", "-2.5", "u2.5"):
-                            odds["Under 2.5"] = dec
-                        if nl in ("over 1.5", "over1.5", "o1.5"):
+                        # Over 1.5 â€” solo se mercato 1.5 OPPURE nome esplicito
+                        if nl in ("over 1.5", "over1.5") or (is_o15 and nl == "over"):
                             odds["Over 1.5"] = dec
-                        if nl in ("yes", "gg", "goal/goal", "entrambe si", "btts yes"):
+                        # GG / BTTS
+                        if nl in ("yes", "gg"):
                             odds["Yes"] = dec
-                        if nl in ("no", "no goal", "btts no"):
-                            odds["No"] = dec
             except Exception:
                 pass
     return odds
