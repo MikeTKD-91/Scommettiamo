@@ -340,16 +340,16 @@ def get_today_events(date_str):
     return events
 
 FLAG_MAP = {
-    "england": "\U0001f3f4\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067\U000e007f", "italy": "\U0001f1ee\U0001f1f9",
-    "spain": "\U0001f1ea\U0001f1f8",  "germany": "\U0001f1e9\U0001f1ea",
-    "france": "\U0001f1eb\U0001f1f7", "portugal": "\U0001f1f5\U0001f1f9",
-    "netherlands": "\U0001f1f3\U0001f1f1", "brazil": "\U0001f1e7\U0001f1f7",
-    "argentina": "\U0001f1e6\U0001f1f7", "usa": "\U0001f1fa\U0001f1f8",
-    "turkey": "\U0001f1f9\U0001f1f7", "greece": "\U0001f1ec\U0001f1f7",
-    "belgium": "\U0001f1e7\U0001f1ea", "scotland": "\U0001f3f4\U000e0067\U000e0062\U000e0073\U000e0063\U000e0074\U000e007f SCO",
-    "austria": "\U0001f1e6\U0001f1f9", "switzerland": "\U0001f1e8\U0001f1ed",
-    "mexico": "\U0001f1f2\U0001f1fd", "japan": "\U0001f1ef\U0001f1f5",
-    "south-korea": "\U0001f1f0\U0001f1f7",
+    "england": "ðŸ´ó §ó ¢ó ¥ó ®ó §ó ¿", "italy": "ðŸ‡®ðŸ‡¹",
+    "spain": "ðŸ‡ªðŸ‡¸",  "germany": "ðŸ‡©ðŸ‡ª",
+    "france": "ðŸ‡«ðŸ‡·", "portugal": "ðŸ‡µðŸ‡¹",
+    "netherlands": "ðŸ‡³ðŸ‡±", "brazil": "ðŸ‡§ðŸ‡·",
+    "argentina": "ðŸ‡¦ðŸ‡·", "usa": "ðŸ‡ºðŸ‡¸",
+    "turkey": "ðŸ‡¹ðŸ‡·", "greece": "ðŸ‡¬ðŸ‡·",
+    "belgium": "ðŸ‡§ðŸ‡ª", "scotland": "ðŸ´ó §ó ¢ó ³ó £ó ´ó ¿ SCO",
+    "austria": "ðŸ‡¦ðŸ‡¹", "switzerland": "ðŸ‡¨ðŸ‡­",
+    "mexico": "ðŸ‡²ðŸ‡½", "japan": "ðŸ‡¯ðŸ‡µ",
+    "south-korea": "ðŸ‡°ðŸ‡·",
 }
 
 def analyze_event(ev, start_utc, end_utc):
@@ -367,7 +367,7 @@ def analyze_event(ev, start_utc, end_utc):
     ut    = tourn.get("uniqueTournament", {})
     t_id  = ut.get("id"); s_id = ev.get("season", {}).get("id")
     lg    = tourn.get("name", "")
-    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "\u26bd")
+    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "âš½")
     hs  = get_team_stats(hid, t_id, s_id)
     as_ = get_team_stats(aid, t_id, s_id)
     if not (hs or as_):
@@ -604,7 +604,7 @@ def top_goals():
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     return jsonify({
         "day": day_label, "date": date_str,
-        "odds_range": f"{ODDS_MIN}-2{ODDS_MAX}",
+        "odds_range": f"{ODDS_MIN}-{ODDS_MAX}",
         "markets_filtered": ["Over 2.5", "Goal/Goal"],
         "total_analyzed": len(unique), "total_found": len(filtered),
         "showing": len(result), "picks": result,
