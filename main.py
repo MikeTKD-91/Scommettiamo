@@ -225,6 +225,16 @@ def sofa_get(url, timeout=8, retries=2):
             break
     return None
 
+def _poisson_over_count(total_goals, matches, threshold):
+    """Stima il numero di partite over-threshold via Poisson."""
+    if not matches or matches < 1: return None
+    avg = total_goals / matches
+    if avg <= 0: return None
+    k = int(threshold)
+    p_under = sum(math.exp(-avg) * avg**i / math.factorial(i) for i in range(k + 1))
+    p_over  = max(0.0, 1.0 - p_under)
+    return round(p_over * matches)
+
 def get_team_stats(team_id, t_id, s_id):
     if not all([team_id, t_id, s_id]): return None
     with db_lock:
@@ -277,7 +287,8 @@ def get_team_stats(team_id, t_id, s_id):
         "wins":   st.get("wins") or 0,
         "draws":  st.get("draws") or 0,
         "losses": st.get("losses") or 0,
-        "over15_count": None, "over25_count": None,
+        "over15_count": _poisson_over_count(gs + gc, m, 1.5),
+        "over25_count": _poisson_over_count(gs + gc, m, 2.5),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     with db_lock:
@@ -296,6 +307,7 @@ def get_event_odds(event_id):
     if not data: return {}
     odds = {}
     for mkt in data.get("markets", []):
+        mkt_name = mkt.get("marketName", "") or mkt.get("name", "")
         for ch in mkt.get("choices", []):
             name = ch.get("name", "")
             frac = ch.get("fractionalValue") or ch.get("initialFractionalValue")
@@ -303,7 +315,20 @@ def get_event_odds(event_id):
                 if frac and "/" in str(frac):
                     n, d = str(frac).split("/")
                     dec = round(int(n) / int(d) + 1, 3)
-                    if dec > 1: odds[name] = dec
+                    if dec > 1:
+                        odds[name] = dec
+                        # Normalizza varianti Over 2.5
+                        nl = name.strip().lower()
+                        if nl in ("over 2.5", "over2.5", "over", "+2.5", "2.5+", "o2.5"):
+                            odds["Over 2.5"] = dec
+                        if nl in ("under 2.5", "under2.5", "under", "-2.5", "u2.5"):
+                            odds["Under 2.5"] = dec
+                        if nl in ("over 1.5", "over1.5", "o1.5"):
+                            odds["Over 1.5"] = dec
+                        if nl in ("yes", "gg", "goal/goal", "entrambe si", "btts yes"):
+                            odds["Yes"] = dec
+                        if nl in ("no", "no goal", "btts no"):
+                            odds["No"] = dec
             except Exception:
                 pass
     return odds
@@ -539,8 +564,8 @@ def top_goals():
         top       int    default 20
         date      str    YYYY-MM-DD (opzionale, default = oggi)
     """
-    ODDS_MIN = float(request.args.get("odds_min", 1.80))
-    ODDS_MAX = float(request.args.get("odds_max", 2.20))
+    ODDS_MIN = float(request.args.get("odds_min", 1.50))
+    ODDS_MAX = float(request.args.get("odds_max", 2.50))
     TOP_N    = int(request.args.get("top", 20))
     date_req = request.args.get("date")
     now_utc  = datetime.now(timezone.utc)
