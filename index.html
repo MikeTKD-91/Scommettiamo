@@ -339,6 +339,7 @@ async function gen(){
     let panels='';
     d.multiples.forEach((m,i)=>{
       const tc=TC[m.target]||TC[3];
+      const qbadge = m.quality==='value'?'':m.quality==='mixed'?'<span style="font-size:.55rem;color:var(--ye);margin-left:4px">⚠</span>':'<span style="font-size:.55rem;color:var(--re);margin-left:4px">⚠⚠</span>';
       tabs+=`<div class="tab ${i===0?'on':''}" data-t="${m.target}" style="${i===0?'--tc:'+tc+';border-color:'+tc+';color:'+tc:'--tc:'+tc}"
         onclick="switchTab(${m.target});this.style.borderColor='${tc}';this.style.color='${tc}'">
         ${ICON[m.target]} <span class="tq">x${m.target}</span>&nbsp;${m.total_odds}
