@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests, math, itertools, os, sqlite3, threading, json, logging, time
@@ -6,14 +7,14 @@ from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 
-# ── Logging ────────────────────────────────────────────────────────────────────
+# -- Logging ------------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler(),
         logging.FileHandler("scommettiamo.log", encoding="utf-8"),
-    ]
+    ],
 )
 log = logging.getLogger("scommettiamo")
 
@@ -47,7 +48,7 @@ def get_cfg(t):
         if t <= k: return TARGET_CONFIG[k]
     return TARGET_CONFIG[100]
 
-# ── Timing decorator ───────────────────────────────────────────────────────────
+# -- Timing decorator ------------------------------------------------------------------------------
 def timed(fn):
     @wraps(fn)
     def wrapper(*a, **kw):
@@ -57,53 +58,46 @@ def timed(fn):
         return result
     return wrapper
 
-# ── Database ───────────────────────────────────────────────────────────────────
+# -- Database ------------------------------------------------------------------------------
 def get_db():
     c = sqlite3.connect(DB_PATH, check_same_thread=False)
     c.row_factory = sqlite3.Row
     return c
 
 def init_db():
+    sql = (
+        "CREATE TABLE IF NOT EXISTS sofa_team_stats ("
+        "team_id INTEGER, tournament_id INTEGER, season_id INTEGER,"
+        "goals_scored INTEGER, goals_conceded INTEGER,"
+        "goals_home INTEGER, goals_away INTEGER,"
+        "conceded_home INTEGER, conceded_away INTEGER,"
+        "matches INTEGER, matches_home INTEGER, matches_away INTEGER,"
+        "big_chances INTEGER, shots_on_target INTEGER, shots INTEGER,"
+        "big_chances_conceded INTEGER, shots_on_target_conceded INTEGER,"
+        "wins INTEGER, draws INTEGER, losses INTEGER,"
+        "over15_count INTEGER, over25_count INTEGER, updated_at TEXT,"
+        "PRIMARY KEY (team_id, tournament_id, season_id));"
+        "CREATE TABLE IF NOT EXISTS sofa_events_cache "
+        "(date TEXT PRIMARY KEY, data TEXT, updated_at TEXT);"
+        "CREATE TABLE IF NOT EXISTS sofa_match_stats "
+        "(event_id INTEGER PRIMARY KEY, home_shots INTEGER, away_shots INTEGER,"
+        " home_sot INTEGER, away_sot INTEGER, home_goals INTEGER, away_goals INTEGER,"
+        " updated_at TEXT);"
+        "CREATE TABLE IF NOT EXISTS request_log "
+        "(id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, endpoint TEXT,"
+        " duration_ms INTEGER, picks_found INTEGER, multiples_built INTEGER);"
+    )
     with db_lock:
         conn = get_db()
         try:
-            conn.executescript("""
-                CREATE TABLE IF NOT EXISTS sofa_team_stats (
-                    team_id INTEGER, tournament_id INTEGER, season_id INTEGER,
-                    goals_scored INTEGER, goals_conceded INTEGER,
-                    goals_home INTEGER, goals_away INTEGER,
-                    conceded_home INTEGER, conceded_away INTEGER,
-                    matches INTEGER, matches_home INTEGER, matches_away INTEGER,
-                    big_chances INTEGER, shots_on_target INTEGER, shots INTEGER,
-                    big_chances_conceded INTEGER, shots_on_target_conceded INTEGER,
-                    wins INTEGER, draws INTEGER, losses INTEGER,
-                    over15_count INTEGER, over25_count INTEGER,
-                    updated_at TEXT,
-                    PRIMARY KEY (team_id, tournament_id, season_id)
-                );
-                CREATE TABLE IF NOT EXISTS sofa_events_cache (
-                    date TEXT PRIMARY KEY, data TEXT, updated_at TEXT
-                );
-                CREATE TABLE IF NOT EXISTS sofa_match_stats (
-                    event_id INTEGER PRIMARY KEY,
-                    home_shots INTEGER, away_shots INTEGER,
-                    home_sot INTEGER, away_sot INTEGER,
-                    home_goals INTEGER, away_goals INTEGER,
-                    updated_at TEXT
-                );
-                CREATE TABLE IF NOT EXISTS request_log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ts TEXT, endpoint TEXT, duration_ms INTEGER,
-                    picks_found INTEGER, multiples_built INTEGER
-                );
-            """)
+            conn.executescript(sql)
             conn.commit()
         finally:
             conn.close()
 
 init_db()
 
-# ── Poisson + Dixon-Coles (matrice normalizzata) ───────────────────────────────
+# -- Poisson + Dixon-Coles -------------------------------------------------------------------
 def dc_tau(x, y, lh, la, rho=-0.13):
     if x == 0 and y == 0: return max(0.001, 1 - lh * la * rho)
     if x == 0 and y == 1: return max(0.001, 1 + lh * rho)
@@ -116,7 +110,6 @@ def pmf(lam, k):
     return math.exp(k * math.log(lam) - lam - sum(math.log(i) for i in range(1, k + 1)))
 
 def calc_probs(lh, la):
-    """Matrice DC normalizzata: la somma post-tau != 1, quindi normalizziamo."""
     matrix = [
         [pmf(lh, h) * pmf(la, a) * dc_tau(h, a, lh, la) for a in range(9)]
         for h in range(9)
@@ -132,7 +125,7 @@ def calc_probs(lh, la):
             if h > 0 and a > 0: gg += p
     return {"over15": min(o15, .99), "over25": min(o25, .99), "gg": min(gg, .99)}
 
-# ── Modelli statistici ─────────────────────────────────────────────────────────
+# -- Modelli statistici ------------------------------------------------------------------------------
 def regress(observed, avg, n, k=REGRESSION_K):
     return (n * observed + k * avg) / (n + k)
 
@@ -170,20 +163,20 @@ def historical_over(stats, threshold="25"):
 def calc_lambda(hs, as_):
     avg = LEAGUE_AVG
     if hs and as_:
-        hm = max(hs.get("matches") or 1, 1)
-        am = max(as_.get("matches") or 1, 1)
+        hm    = max(hs.get("matches") or 1, 1)
+        am    = max(as_.get("matches") or 1, 1)
         att_h = regress((hs.get("goals_home") or 0) / max(hs.get("matches_home") or 1, 1) / avg, 1.0, hm)
         att_a = regress((as_.get("goals_away") or 0) / max(as_.get("matches_away") or 1, 1) / avg, 1.0, am)
         def_h = regress((hs.get("conceded_home") or 0) / max(hs.get("matches_home") or 1, 1) / avg, 1.0, hm)
         def_a = regress((as_.get("conceded_away") or 0) / max(as_.get("matches_away") or 1, 1) / avg, 1.0, am)
         lh_g, la_g = avg * att_h * def_a, avg * att_a * def_h
     elif hs:
-        hm = max(hs.get("matches") or 1, 1)
+        hm    = max(hs.get("matches") or 1, 1)
         att_h = regress((hs.get("goals_scored") or 0) / hm / avg, 1.0, hm)
         def_h = regress((hs.get("goals_conceded") or 0) / hm / avg, 1.0, hm)
         lh_g, la_g = avg * att_h, avg * def_h
     elif as_:
-        am = max(as_.get("matches") or 1, 1)
+        am    = max(as_.get("matches") or 1, 1)
         att_a = regress((as_.get("goals_scored") or 0) / am / avg, 1.0, am)
         def_a = regress((as_.get("goals_conceded") or 0) / am / avg, 1.0, am)
         lh_g, la_g = avg * def_a, avg * att_a
@@ -199,20 +192,18 @@ def calc_lambda(hs, as_):
     la  = la_g * w_g + la_xg * (1 - w_g)
     lh *= 0.80 + exp_form(hs) * 0.40
     la *= 0.80 + exp_form(as_) * 0.40
-
-    lh = max(0.3, min(4.5, lh))
-    la = max(0.3, min(4.5, la))
+    lh  = max(0.3, min(4.5, lh))
+    la  = max(0.3, min(4.5, la))
 
     hs_has_shots = hs and ((hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0)
     as_has_shots = as_ and ((as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0)
     if (lh > 3.0 or la > 3.0) and not (hs_has_shots or as_has_shots):
-        log.warning(f"Lambda sospetto (lh={lh:.2f}, la={la:.2f}) con shot_data assenti — fallback xG")
+        log.warning(f"Lambda sospetto (lh={lh:.2f}, la={la:.2f}) con shot_data assenti -- fallback xG")
         lh = max(0.3, min(3.0, lh_xg * (0.80 + exp_form(hs) * 0.40)))
         la = max(0.3, min(3.0, la_xg * (0.80 + exp_form(as_) * 0.40)))
-
     return lh, la
 
-# ── SofaScore fetchers con retry + backoff ─────────────────────────────────────
+# -- SofaScore fetchers con retry + backoff ----------------------------------------------------------------
 def sofa_get(url, timeout=8, retries=2):
     for attempt in range(retries + 1):
         try:
@@ -221,13 +212,13 @@ def sofa_get(url, timeout=8, retries=2):
                 return r.json()
             if r.status_code == 429:
                 wait = 2 ** attempt
-                log.warning(f"Rate limit SofaScore (429), attendo {wait}s — {url}")
+                log.warning(f"Rate limit SofaScore (429), attendo {wait}s -- {url}")
                 time.sleep(wait)
             else:
-                log.debug(f"SofaScore HTTP {r.status_code} — {url}")
+                log.debug(f"SofaScore HTTP {r.status_code} -- {url}")
                 break
         except requests.Timeout:
-            log.warning(f"Timeout tentativo {attempt+1}/{retries+1} — {url}")
+            log.warning(f"Timeout tentativo {attempt+1}/{retries+1} -- {url}")
             if attempt < retries: time.sleep(1.5 ** attempt)
         except Exception as e:
             log.error(f"Errore fetch {url}: {e}")
@@ -245,66 +236,56 @@ def get_team_stats(team_id, t_id, s_id):
             ).fetchone()
         finally:
             conn.close()
-
     if row:
         upd = datetime.fromisoformat(row["updated_at"])
         if (datetime.now(timezone.utc) - upd).total_seconds() < 3600 * 12:
             return dict(row)
-
     data = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{t_id}/season/{s_id}/statistics/overall")
     if not data:
         log.debug(f"Nessun dato overall per team {team_id}")
         return dict(row) if row else None
     st = data.get("statistics", {})
     if not st: return dict(row) if row else None
-
-    m    = max(st.get("matches") or 1, 1)
+    m      = max(st.get("matches") or 1, 1)
     data_h = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{t_id}/season/{s_id}/statistics/home")
     data_a = sofa_get(f"https://api.sofascore.com/api/v1/team/{team_id}/unique-tournament/{t_id}/season/{s_id}/statistics/away")
     st_h_raw = (data_h or {}).get("statistics", {})
     st_a_raw = (data_a or {}).get("statistics", {})
-    gs       = st.get("goalsScored") or 0
-    gc       = st.get("goalsConceded") or 0
-
-    # FIX CRITICO: SofaScore per leghe basse restituisce matches_home=0
-    # → max(0,1)=1 → goals_home/1 invece di goals_home/14 → lambda esplode a 9
+    gs = st.get("goalsScored") or 0
+    gc = st.get("goalsConceded") or 0
     mh_raw = st_h_raw.get("matches") or 0
     ma_raw = st_a_raw.get("matches") or 0
-    st_h   = st_h_raw if mh_raw >= 3 else {}
-    st_a   = st_a_raw if ma_raw >= 3 else {}
-    mh     = mh_raw if mh_raw >= 3 else max(m // 2, 1)
-    ma     = ma_raw if ma_raw >= 3 else max(m // 2, 1)
+    st_h = st_h_raw if mh_raw >= 3 else {}
+    st_a = st_a_raw if ma_raw >= 3 else {}
+    mh = mh_raw if mh_raw >= 3 else max(m // 2, 1)
+    ma = ma_raw if ma_raw >= 3 else max(m // 2, 1)
     if mh_raw < 3:
         log.debug(f"Team {team_id}: matches_home={mh_raw} insufficienti, fallback mh={mh}")
-
     rec = {
         "team_id": team_id, "tournament_id": t_id, "season_id": s_id,
         "goals_scored": gs, "goals_conceded": gc,
-        "goals_home": st_h.get("goalsScored") if st_h else gs // 2,
-        "goals_away": st_a.get("goalsScored") if st_a else gs // 2,
-        "conceded_home": st_h.get("goalsConceded") if st_h else gc // 2,
-        "conceded_away": st_a.get("goalsConceded") if st_a else gc // 2,
+        "goals_home":     st_h.get("goalsScored")    if st_h else gs // 2,
+        "goals_away":     st_a.get("goalsScored")    if st_a else gs // 2,
+        "conceded_home":  st_h.get("goalsConceded")  if st_h else gc // 2,
+        "conceded_away":  st_a.get("goalsConceded")  if st_a else gc // 2,
         "matches": m, "matches_home": mh, "matches_away": ma,
-        "big_chances": st.get("bigChances") or 0,
-        "shots_on_target": st.get("shotsOnTarget") or 0,
-        "shots": st.get("shots") or 0,
-        "big_chances_conceded": st.get("bigChancesConceded") or 0,
+        "big_chances":              st.get("bigChances") or 0,
+        "shots_on_target":          st.get("shotsOnTarget") or 0,
+        "shots":                    st.get("shots") or 0,
+        "big_chances_conceded":     st.get("bigChancesConceded") or 0,
         "shots_on_target_conceded": st.get("shotsOnTargetAgainst") or 0,
-        "wins": st.get("wins") or 0,
-        "draws": st.get("draws") or 0,
+        "wins":   st.get("wins") or 0,
+        "draws":  st.get("draws") or 0,
         "losses": st.get("losses") or 0,
-        "over15_count": None,
-        "over25_count": None,
+        "over15_count": None, "over25_count": None,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-
     with db_lock:
         conn = get_db()
         try:
-            conn.execute("""
-                INSERT OR REPLACE INTO sofa_team_stats VALUES
-                (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, list(rec.values()))
+            conn.execute(
+                "INSERT OR REPLACE INTO sofa_team_stats VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                list(rec.values()))
             conn.commit()
         finally:
             conn.close()
@@ -321,7 +302,7 @@ def get_event_odds(event_id):
             try:
                 if frac and "/" in str(frac):
                     n, d = str(frac).split("/")
-                    dec  = round(int(n) / int(d) + 1, 3)
+                    dec = round(int(n) / int(d) + 1, 3)
                     if dec > 1: odds[name] = dec
             except Exception:
                 pass
@@ -336,19 +317,16 @@ def get_today_events(date_str):
             ).fetchone()
         finally:
             conn.close()
-
     if row:
         upd = datetime.fromisoformat(row["updated_at"])
         if (datetime.now(timezone.utc) - upd).total_seconds() < 3600 * 2:
             return json.loads(row["data"])
-
     data = sofa_get(f"https://api.sofascore.com/api/v1/sport/football/scheduled-events/{date_str}", timeout=15)
     if not data:
         log.warning(f"Nessun evento da SofaScore per {date_str}")
         return []
     events = data.get("events", [])
     log.info(f"SofaScore: {len(events)} eventi trovati per {date_str}")
-
     with db_lock:
         conn = get_db()
         try:
@@ -362,11 +340,16 @@ def get_today_events(date_str):
     return events
 
 FLAG_MAP = {
-    "england": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "italy": "🇮🇹", "spain": "🇪🇸", "germany": "🇩🇪",
-    "france": "🇫🇷", "portugal": "🇵🇹", "netherlands": "🇳🇱", "brazil": "🇧🇷",
-    "argentina": "🇦🇷", "usa": "🇺🇸", "turkey": "🇹🇷", "greece": "🇬🇷",
-    "belgium": "🇧🇪", "scotland": "🏴󠁧󠁢󠁳󠁣󠁴󠁿 SCO", "austria": "🇦🇹",
-    "switzerland": "🇨🇭", "mexico": "🇲🇽", "japan": "🇯🇵", "south-korea": "🇰🇷",
+    "england": "\U0001f3f4\U000e0067\U000e0062\U000e0065\U000e006e\U000e0067\U000e007f", "italy": "\U0001f1ee\U0001f1f9",
+    "spain": "\U0001f1ea\U0001f1f8",  "germany": "\U0001f1e9\U0001f1ea",
+    "france": "\U0001f1eb\U0001f1f7", "portugal": "\U0001f1f5\U0001f1f9",
+    "netherlands": "\U0001f1f3\U0001f1f1", "brazil": "\U0001f1e7\U0001f1f7",
+    "argentina": "\U0001f1e6\U0001f1f7", "usa": "\U0001f1fa\U0001f1f8",
+    "turkey": "\U0001f1f9\U0001f1f7", "greece": "\U0001f1ec\U0001f1f7",
+    "belgium": "\U0001f1e7\U0001f1ea", "scotland": "\U0001f3f4\U000e0067\U000e0062\U000e0073\U000e0063\U000e0074\U000e007f SCO",
+    "austria": "\U0001f1e6\U0001f1f9", "switzerland": "\U0001f1e8\U0001f1ed",
+    "mexico": "\U0001f1f2\U0001f1fd", "japan": "\U0001f1ef\U0001f1f5",
+    "south-korea": "\U0001f1f0\U0001f1f7",
 }
 
 def analyze_event(ev, start_utc, end_utc):
@@ -376,61 +359,50 @@ def analyze_event(ev, start_utc, end_utc):
     if not (start_utc <= ev_time <= end_utc): return []
     if ev.get("status", {}).get("type", "") in ["inprogress", "finished", "postponed", "canceled"]:
         return []
-
-    ht  = ev.get("homeTeam", {}); at = ev.get("awayTeam", {})
-    hn  = ht.get("name", "");     an = at.get("name", "")
+    ht  = ev.get("homeTeam", {}); at  = ev.get("awayTeam", {})
+    hn  = ht.get("name", "");     an  = at.get("name", "")
     hid = ht.get("id");           aid = at.get("id")
     eid = ev.get("id")
     tourn = ev.get("tournament", {})
     ut    = tourn.get("uniqueTournament", {})
     t_id  = ut.get("id"); s_id = ev.get("season", {}).get("id")
     lg    = tourn.get("name", "")
-    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "⚽")
-
+    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "\u26bd")
     hs  = get_team_stats(hid, t_id, s_id)
     as_ = get_team_stats(aid, t_id, s_id)
     if not (hs or as_):
         log.debug(f"Skip {hn} vs {an}: nessun dato squadre")
         return []
-
-    lh, la    = calc_lambda(hs, as_)
-    pr        = calc_probs(lh, la)
-    fh        = round(exp_form(hs), 2)
-    fa        = round(exp_form(as_), 2)
-    odds_data = get_event_odds(eid)
-
+    lh, la = calc_lambda(hs, as_)
+    pr = calc_probs(lh, la)
+    fh = round(exp_form(hs), 2)
+    fa = round(exp_form(as_), 2)
+    odds_data  = get_event_odds(eid)
     hist_o25_h = historical_over(hs, "25")
     hist_o25_a = historical_over(as_, "25")
     hist_conf  = round((hist_o25_h + hist_o25_a) / 2, 3) if (hist_o25_h and hist_o25_a) else None
-
     picks = []
-
     o15 = odds_data.get("Over 1.5") or odds_data.get("Over1.5")
     if o15 and 1.10 <= o15 <= 1.65:
         prob = min(pr["over15"] * 1.05, 0.99) if (hist_conf and hist_conf > 0.60) else pr["over15"]
         picks.append({"name": "Over 1.5", "odds": round(o15, 2), "prob": round(prob, 3),
                       "edge": round(prob - 1/o15, 3), "market": "over15"})
-
     o25 = odds_data.get("Over 2.5") or odds_data.get("Over2.5")
     if o25 and 1.35 <= o25 <= 2.60:
         prob = min(pr["over25"] * 1.04, 0.99) if (hist_conf and hist_conf > 0.50) else pr["over25"]
         picks.append({"name": "Over 2.5", "odds": round(o25, 2), "prob": round(prob, 3),
                       "edge": round(prob - 1/o25, 3), "market": "over25"})
-
     gg_odds = odds_data.get("Yes") or odds_data.get("GG")
     if gg_odds and 1.40 <= gg_odds <= 2.50:
         prob = pr["gg"]
         picks.append({"name": "Goal/Goal", "odds": round(gg_odds, 2), "prob": round(prob, 3),
                       "edge": round(prob - 1/gg_odds, 3), "market": "gg"})
-
     if not picks: return []
-
     has_shots_h  = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
     has_shots_a  = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
     data_quality = "high" if (has_shots_h and has_shots_a) else "medium" if (has_shots_h or has_shots_a) else "low"
     if data_quality == "low":
-        log.info(f"[LOW QUALITY] {hn} vs {an} — nessun shot data")
-
+        log.info(f"[LOW QUALITY] {hn} vs {an} -- nessun shot data")
     base = {
         "match": f"{hn} vs {an}", "league": f"{flag} {lg}",
         "commence_time": ev_time.isoformat(),
@@ -442,17 +414,16 @@ def analyze_event(ev, start_utc, end_utc):
     }
     return [{**base, **p, "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15} for p in picks]
 
-# ── Combo builder ──────────────────────────────────────────────────────────────
+# -- Combo builder ------------------------------------------------------------------------------
 def greedy_combo(picks, target, cfg):
     log_target = math.log(max(target, 1.01))
     candidates = sorted(picks, key=lambda p: p["score"], reverse=True)[:30]
     beam = [[p] for p in candidates[:10]]
-
     for _ in range(cfg["max_picks"] - 1):
         new_beam = []
         for current in beam:
-            current_log     = sum(math.log(p["odds"]) for p in current)
-            remaining       = log_target - current_log
+            current_log = sum(math.log(p["odds"]) for p in current)
+            remaining   = log_target - current_log
             if remaining <= 0: continue
             current_matches = {p["match"] for p in current}
             for cand in candidates:
@@ -469,7 +440,6 @@ def greedy_combo(picks, target, cfg):
             + sum(p["edge"] for p in c) * 15
             - abs(sum(math.log(p["odds"]) for p in c) - log_target) * 15
         ), reverse=True)[:15]
-
     valid = [
         c for c in beam
         if cfg["min_picks"] <= len(c) <= cfg["max_picks"]
@@ -485,10 +455,8 @@ def find_best_combo(picks, target, cfg):
         if len(f) >= cfg["min_picks"]: break
     if len(f) < cfg["min_picks"]: f = picks
     f = [p for p in f if math.log(p["odds"]) < log_target * 1.2]
-
     if target > 10:
         return greedy_combo(f, target, cfg)
-
     top = sorted(f, key=lambda p: p["score"], reverse=True)[:25]
     best, bs = [], -1
     for sz in range(cfg["min_picks"], cfg["max_picks"] + 1):
@@ -507,7 +475,7 @@ def find_best_combo(picks, target, cfg):
             break
     return best
 
-# ── Routes ─────────────────────────────────────────────────────────────────────
+# -- Routes ------------------------------------------------------------------------------
 @app.route("/health")
 def health():
     with db_lock:
@@ -525,11 +493,7 @@ def reset_cache():
     with db_lock:
         conn = get_db()
         try:
-            conn.executescript("""
-                DELETE FROM sofa_team_stats;
-                DELETE FROM sofa_events_cache;
-                DELETE FROM sofa_match_stats;
-            """)
+            conn.executescript("DELETE FROM sofa_team_stats; DELETE FROM sofa_events_cache; DELETE FROM sofa_match_stats;")
             conn.commit()
         finally:
             conn.close()
@@ -543,29 +507,107 @@ def picks_debug():
         day_dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=ITALY_TZ)
     except ValueError:
         return jsonify({"error": "Formato data non valido. Usa YYYY-MM-DD"}), 400
-
     start  = day_dt.astimezone(timezone.utc)
     end    = day_dt.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
     events = get_today_events(date_str)
-
     all_picks = []
     with ThreadPoolExecutor(max_workers=10) as ex:
         futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
         for fut in as_completed(futures):
             try: all_picks.extend(fut.result())
             except Exception as e: log.error(f"analyze_event error: {e}")
-
     seen, unique = set(), []
     for p in all_picks:
         k = f"{p['match']}|{p['name']}"
         if k not in seen: seen.add(k); unique.append(p)
-
     unique.sort(key=lambda p: p["score"], reverse=True)
+    return jsonify({"date": date_str, "total_picks": len(unique),
+                    "value_bets": sum(1 for p in unique if p["edge"] > 0.02),
+                    "picks": unique[:50]})
+
+# -- TOP GOALS: Over 2.5 & GG | quote 1.80-2.20 | top 20 per probabilita' -------------------
+@app.route("/top-goals")
+@timed
+def top_goals():
+    """
+    Restituisce i migliori N eventi Over 2.5 / Goal-Goal con quota compresa
+    tra odds_min e odds_max, ordinati per probabilita' decrescente.
+
+    Query params:
+        odds_min  float  default 1.80
+        odds_max  float  default 2.20
+        top       int    default 20
+        date      str    YYYY-MM-DD (opzionale, default = oggi)
+    """
+    ODDS_MIN = float(request.args.get("odds_min", 1.80))
+    ODDS_MAX = float(request.args.get("odds_max", 2.20))
+    TOP_N    = int(request.args.get("top", 20))
+    date_req = request.args.get("date")
+    now_utc  = datetime.now(timezone.utc)
+    now_it   = now_utc.astimezone(ITALY_TZ)
+    all_picks, day_offset = [], 0
+    for day_offset in range(3):
+        day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
+        date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
+        start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
+        end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        events   = get_today_events(date_str)
+        log.info(f"[top-goals] Analisi {len(events)} eventi per {date_str}")
+        day_picks = []
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
+            for fut in as_completed(futures):
+                try: day_picks.extend(fut.result())
+                except Exception as e: log.error(f"analyze_event error: {e}")
+        if day_picks:
+            all_picks = day_picks
+            break
+        if date_req:
+            break
+    if not all_picks:
+        return jsonify({"error": "Nessuna partita trovata con dati statistici nei prossimi 3 giorni."}), 404
+    seen, unique = set(), []
+    for p in all_picks:
+        k = f"{p['match']}|{p['name']}"
+        if k not in seen: seen.add(k); unique.append(p)
+    filtered = [
+        p for p in unique
+        if p["market"] in ("over25", "gg")
+        and ODDS_MIN <= p["odds"] <= ODDS_MAX
+    ]
+    if not filtered:
+        return jsonify({"error": f"Nessun pick Over 2.5 / GG con quota tra {ODDS_MIN} e {ODDS_MAX}.",
+                        "total_picks_analyzed": len(unique)}), 404
+    filtered.sort(key=lambda p: p["prob"], reverse=True)
+    top = filtered[:TOP_N]
+    result = []
+    for rank, p in enumerate(top, start=1):
+        result.append({
+            "rank":          rank,
+            "match":         p["match"],
+            "league":        p["league"],
+            "market":        p["name"],
+            "odds":          p["odds"],
+            "probability":   f"{round(p['prob'] * 100, 1)}%",
+            "prob_raw":      p["prob"],
+            "edge":          p["edge"],
+            "value_bet":     p["edge"] > 0.02,
+            "exp_goals":     p.get("exp_g"),
+            "lambda_home":   p.get("lambda_home"),
+            "lambda_away":   p.get("lambda_away"),
+            "home_form":     p.get("home_form"),
+            "away_form":     p.get("away_form"),
+            "hist_over25":   p.get("hist_over25"),
+            "data_quality":  p.get("data_quality"),
+            "commence_time": p.get("commence_time"),
+        })
+    day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     return jsonify({
-        "date": date_str,
-        "total_picks": len(unique),
-        "value_bets": sum(1 for p in unique if p["edge"] > 0.02),
-        "picks": unique[:50],
+        "day": day_label, "date": date_str,
+        "odds_range": f"{ODDS_MIN}-2{ODDS_MAX}",
+        "markets_filtered": ["Over 2.5", "Goal/Goal"],
+        "total_analyzed": len(unique), "total_found": len(filtered),
+        "showing": len(result), "picks": result,
     })
 
 @app.route("/generate", methods=["POST"])
@@ -574,101 +616,66 @@ def generate():
     t0      = time.perf_counter()
     now_utc = datetime.now(timezone.utc)
     now_it  = now_utc.astimezone(ITALY_TZ)
-
     all_picks, day_offset = [], 0
     for day_offset in range(3):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = day_dt.strftime("%Y-%m-%d")
         start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
-
-        events = get_today_events(date_str)
+        events   = get_today_events(date_str)
         log.info(f"Analisi {len(events)} eventi per {date_str} (day_offset={day_offset})")
-
         day_picks = []
         with ThreadPoolExecutor(max_workers=10) as ex:
             futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
             for fut in as_completed(futures):
                 try: day_picks.extend(fut.result())
                 except Exception as e: log.error(f"analyze_event error: {e}")
-
         if day_picks:
             all_picks = day_picks
             break
-
     if not all_picks:
         return jsonify({"error": "Nessuna partita trovata con dati statistici nei prossimi 3 giorni."}), 404
-
     seen, unique = set(), []
     for p in all_picks:
         k = f"{p['match']}|{p['name']}"
         if k not in seen: seen.add(k); unique.append(p)
-
-    day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
-    multiples = []
-
-    # Genera 5 multipla sempre — pick non ripetuti tra target diversi
-    # Livelli di qualità progressivi:
-    # Livello 1: solo VALUE BET (edge > 0.02)
-    # Livello 2: pick con edge positivo (edge >= 0)
-    # Livello 3: qualsiasi pick disponibile
-    # Livello 4: riusa partite già usate (ultimo fallback)
-
+    day_label    = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     used_matches = set()
     multiples    = []
-
     for tgt in [3, 5, 8, 10, 100]:
-        cfg = get_cfg(tgt)
-
-        # Prova con qualità decrescente finché trova una combo
+        cfg   = get_cfg(tgt)
         combo = []
         for quality_level in range(4):
             if quality_level == 0:
-                # Solo pick non usati con VALUE BET
                 pool = [p for p in unique if p["match"] not in used_matches and p["edge"] > 0.02]
             elif quality_level == 1:
-                # Tutti i pick non usati
                 pool = [p for p in unique if p["match"] not in used_matches]
             elif quality_level == 2:
-                # Se non bastano i non usati, aggiungi anche usati (con penalità score)
                 used_pool = [dict(p, score=p["score"] * 0.3) for p in unique if p["match"] in used_matches]
                 pool = [p for p in unique if p["match"] not in used_matches] + used_pool
             else:
-                # Ultimo fallback: tutto il pool con penalità massima
                 pool = [dict(p, score=p["score"] * 0.1) for p in unique]
-
-            if len(pool) < cfg["min_picks"]:
-                continue
-
+            if len(pool) < cfg["min_picks"]: continue
             combo = find_best_combo(pool, tgt, cfg)
             if combo:
                 log.info(f"Multipla x{tgt}: trovata a quality_level={quality_level}, {len(combo)} pick")
                 break
-
         if combo:
-            # Aggiungi solo le nuove partite agli usati
-            for p in combo:
-                used_matches.add(p["match"])
-
+            for p in combo: used_matches.add(p["match"])
             total_odds  = round(math.prod(p["odds"] for p in combo), 2)
             combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
             value_count = sum(1 for p in combo if p["edge"] > 0.02)
-
             multiples.append({
-                "target":           tgt,
-                "total_odds":       total_odds,
-                "combo_probability": combo_prob,
-                "picks":            combo,
-                "value_in_combo":   value_count,
-                "quality":          "value" if value_count == len(combo) else "mixed" if value_count > 0 else "low",
+                "target": tgt, "total_odds": total_odds,
+                "combo_probability": combo_prob, "picks": combo,
+                "value_in_combo": value_count,
+                "quality": "value" if value_count == len(combo) else "mixed" if value_count > 0 else "low",
             })
             log.info(f"Multipla x{tgt}: quota {total_odds}, prob {combo_prob}%, quality={multiples[-1]['quality']}")
         else:
             log.warning(f"Multipla x{tgt}: impossibile costruire anche con fallback completo")
-
     if not multiples:
         return jsonify({"error": "Impossibile costruire multipla."}), 404
-
     duration_ms = int((time.perf_counter() - t0) * 1000)
     with db_lock:
         conn = get_db()
@@ -680,15 +687,12 @@ def generate():
             conn.commit()
         finally:
             conn.close()
-
     return jsonify({
-        "multiples": multiples,
-        "day": day_label,
-        "leagues_with_data": len({p["league"] for p in unique}),
-        "matches_analyzed": len({p["match"] for p in unique}),
-        "value_bets_found": sum(1 for p in unique if p["edge"] > 0.02),
-        "duration_ms": duration_ms,
-        "source": "sofascore",
+        "multiples": multiples, "day": day_label,
+        "leagues_with_data":  len({p["league"] for p in unique}),
+        "matches_analyzed":   len({p["match"] for p in unique}),
+        "value_bets_found":   sum(1 for p in unique if p["edge"] > 0.02),
+        "duration_ms": duration_ms, "source": "sofascore",
     })
 
 if __name__ == "__main__":
