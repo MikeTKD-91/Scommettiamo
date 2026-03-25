@@ -135,7 +135,12 @@ def calc_xg(stats, per_game=True):
     bc   = (stats.get("big_chances") or 0) / m
     sot  = (stats.get("shots_on_target") or 0) / m
     soff = max((stats.get("shots") or 0) / m - sot, 0)
-    xg   = bc * 0.35 + sot * 0.10 + soff * 0.02
+    has_shot_data = (stats.get("shots") or 0) > 0 or sot > 0
+    if has_shot_data:
+        xg = bc * 0.35 + sot * 0.10 + soff * 0.02
+    else:
+        # Fallback: usa gol reali segnati se non ci sono dati sui tiri
+        xg = (stats.get("goals_scored") or 0) / m
     return regress(xg, LEAGUE_AVG, m) if per_game else xg * m
 
 def calc_xga(stats, per_game=True):
@@ -143,7 +148,12 @@ def calc_xga(stats, per_game=True):
     m   = max(stats.get("matches") or 1, 1)
     bc  = (stats.get("big_chances_conceded") or 0) / m
     sot = (stats.get("shots_on_target_conceded") or 0) / m
-    xga = bc * 0.35 + sot * 0.10
+    has_shot_data = (stats.get("shots_on_target_conceded") or 0) > 0 or bc > 0
+    if has_shot_data:
+        xga = bc * 0.35 + sot * 0.10
+    else:
+        # Fallback: usa gol subiti reali
+        xga = (stats.get("goals_conceded") or 0) / m
     return regress(xga, LEAGUE_AVG, m) if per_game else xga * m
 
 def exp_form(stats):
@@ -190,8 +200,8 @@ def calc_lambda(hs, as_):
     w_g = min(n / 40, 0.70)
     lh  = lh_g * w_g + lh_xg * (1 - w_g)
     la  = la_g * w_g + la_xg * (1 - w_g)
-    lh *= 0.80 + exp_form(hs) * 0.40
-    la *= 0.80 + exp_form(as_) * 0.40
+    lh *= 0.92 + exp_form(hs) * 0.20
+    la *= 0.92 + exp_form(as_) * 0.20
     lh  = max(0.3, min(4.5, lh))
     la  = max(0.3, min(4.5, la))
 
@@ -696,7 +706,7 @@ def generate():
             for p in combo: used_matches.add(p["match"])
             total_odds  = round(math.prod(p["odds"] for p in combo), 2)
             combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
-            value_count = sum(1 for p in combo if p["edge"] > 0.02)
+            value_count = sum(1 for p in combo if p["edge"] > 0.00)
             multiples.append({
                 "target": tgt, "total_odds": total_odds,
                 "combo_probability": combo_prob, "picks": combo,
@@ -723,7 +733,7 @@ def generate():
         "multiples": multiples, "day": day_label,
         "leagues_with_data":  len({p["league"] for p in unique}),
         "matches_analyzed":   len({p["match"] for p in unique}),
-        "value_bets_found":   sum(1 for p in unique if p["edge"] > 0.02),
+        "value_bets_found":   sum(1 for p in unique if p["edge"] > 0.00),
         "duration_ms": duration_ms, "source": "sofascore",
     })
 
