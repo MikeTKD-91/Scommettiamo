@@ -607,18 +607,64 @@ def generate():
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     multiples = []
 
+    # Genera 5 multipla sempre — pick non ripetuti tra target diversi
+    # Livelli di qualità progressivi:
+    # Livello 1: solo VALUE BET (edge > 0.02)
+    # Livello 2: pick con edge positivo (edge >= 0)
+    # Livello 3: qualsiasi pick disponibile
+    # Livello 4: riusa partite già usate (ultimo fallback)
+
+    used_matches = set()
+    multiples    = []
+
     for tgt in [3, 5, 8, 10, 100]:
-        cfg   = get_cfg(tgt)
-        combo = find_best_combo(unique, tgt, cfg)
+        cfg = get_cfg(tgt)
+
+        # Prova con qualità decrescente finché trova una combo
+        combo = []
+        for quality_level in range(4):
+            if quality_level == 0:
+                # Solo pick non usati con VALUE BET
+                pool = [p for p in unique if p["match"] not in used_matches and p["edge"] > 0.02]
+            elif quality_level == 1:
+                # Tutti i pick non usati
+                pool = [p for p in unique if p["match"] not in used_matches]
+            elif quality_level == 2:
+                # Se non bastano i non usati, aggiungi anche usati (con penalità score)
+                used_pool = [dict(p, score=p["score"] * 0.3) for p in unique if p["match"] in used_matches]
+                pool = [p for p in unique if p["match"] not in used_matches] + used_pool
+            else:
+                # Ultimo fallback: tutto il pool con penalità massima
+                pool = [dict(p, score=p["score"] * 0.1) for p in unique]
+
+            if len(pool) < cfg["min_picks"]:
+                continue
+
+            combo = find_best_combo(pool, tgt, cfg)
+            if combo:
+                log.info(f"Multipla x{tgt}: trovata a quality_level={quality_level}, {len(combo)} pick")
+                break
+
         if combo:
+            # Aggiungi solo le nuove partite agli usati
+            for p in combo:
+                used_matches.add(p["match"])
+
+            total_odds  = round(math.prod(p["odds"] for p in combo), 2)
+            combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            value_count = sum(1 for p in combo if p["edge"] > 0.02)
+
             multiples.append({
-                "target": tgt,
-                "total_odds": round(math.prod(p["odds"] for p in combo), 2),
-                "combo_probability": round(math.prod(p["prob"] for p in combo) * 100, 1),
-                "picks": combo,
-                "value_in_combo": sum(1 for p in combo if p["edge"] > 0.02),
+                "target":           tgt,
+                "total_odds":       total_odds,
+                "combo_probability": combo_prob,
+                "picks":            combo,
+                "value_in_combo":   value_count,
+                "quality":          "value" if value_count == len(combo) else "mixed" if value_count > 0 else "low",
             })
-            log.info(f"Multipla x{tgt}: {len(combo)} pick, quota {round(math.prod(p['odds'] for p in combo),2)}")
+            log.info(f"Multipla x{tgt}: quota {total_odds}, prob {combo_prob}%, quality={multiples[-1]['quality']}")
+        else:
+            log.warning(f"Multipla x{tgt}: impossibile costruire anche con fallback completo")
 
     if not multiples:
         return jsonify({"error": "Impossibile costruire multipla."}), 404
