@@ -607,24 +607,31 @@ def top_goals():
     top = filtered[:TOP_N]
     result = []
     for rank, p in enumerate(top, start=1):
+        probs        = p.get("probs") or {}
+        p_o25        = round(probs.get("over25", 0), 3)
+        p_gg         = round(probs.get("gg", 0), 3)
+        best_market  = "Over 2.5" if p_o25 >= p_gg else "Goal/Goal"
         result.append({
-            "rank":          rank,
-            "match":         p["match"],
-            "league":        p["league"],
-            "market":        p["name"],
-            "odds":          p["odds"],
-            "probability":   f"{round(p['prob'] * 100, 1)}%",
-            "prob_raw":      p["prob"],
-            "edge":          p["edge"],
-            "value_bet":     p["edge"] > 0.02,
-            "exp_goals":     p.get("exp_g"),
-            "lambda_home":   p.get("lambda_home"),
-            "lambda_away":   p.get("lambda_away"),
-            "home_form":     p.get("home_form"),
-            "away_form":     p.get("away_form"),
-            "hist_over25":   p.get("hist_over25"),
-            "data_quality":  p.get("data_quality"),
-            "commence_time": p.get("commence_time"),
+            "rank":           rank,
+            "match":          p["match"],
+            "league":         p["league"],
+            "market":         p["name"],
+            "best_market":    best_market,
+            "odds":           p["odds"],
+            "probability":    f"{round(p['prob'] * 100, 1)}%",
+            "prob_raw":       p["prob"],
+            "prob_over25_raw": p_o25,
+            "prob_gg_raw":    p_gg,
+            "edge":           p["edge"],
+            "value_bet":      p["edge"] > 0.02,
+            "exp_goals":      p.get("exp_g"),
+            "lambda_home":    p.get("lambda_home"),
+            "lambda_away":    p.get("lambda_away"),
+            "home_form":      p.get("home_form"),
+            "away_form":      p.get("away_form"),
+            "hist_over25":    p.get("hist_over25"),
+            "data_quality":   p.get("data_quality"),
+            "commence_time":  p.get("commence_time"),
         })
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     return jsonify({
