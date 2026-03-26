@@ -32,7 +32,7 @@ body::before{content:'';position:fixed;inset:0;
 .hdr-title span{background:linear-gradient(135deg,var(--tx) 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hdr-sub{color:var(--mu);font-size:0.78rem}
 
-/* CONFIG CARD */
+/* CONFIG */
 .card{background:var(--c1);border:1px solid var(--br);border-radius:18px;padding:18px;margin-bottom:20px}
 .field-label{color:var(--mu);font-size:0.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
 input[type=text]{
@@ -41,18 +41,14 @@ input[type=text]{
 }
 input:focus{border-color:var(--g);background:rgba(0,230,118,.03)}
 
-/* PULSANTE TOP 20 - FIXATO */
+/* PULSANTE */
 .top-btn{
   width:100%;background:var(--c1);border:2px solid var(--br);border-radius:16px;
   padding:18px 16px;color:var(--tx);font-weight:700;font-size:1rem;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
   margin-bottom:20px;transition:all .25s;position:relative;z-index:10;
-  -webkit-tap-highlight-color:transparent;
 }
-.top-btn:hover{
-  border-color:var(--g);color:var(--g);transform:translateY(-2px);
-}
-.top-btn:active{transform:scale(0.98)}
+.top-btn:hover{border-color:var(--g);color:var(--g);transform:translateY(-2px)}
 
 /* ERROR */
 .err-box{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.25);border-radius:14px;padding:14px 16px;color:#fb7185;font-size:0.85rem;margin-bottom:16px;display:none;gap:8px}
@@ -60,6 +56,16 @@ input:focus{border-color:var(--g);background:rgba(0,230,118,.03)}
 
 /* RISULTATI */
 .result-card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px;margin-bottom:16px}
+.pick{
+  background:var(--c2);border-radius:12px;padding:14px;margin-bottom:10px;
+  border-left:4px solid var(--g);
+}
+.pick-league{font-size:0.82rem;font-weight:700;color:var(--mu);margin-bottom:4px}
+.pick-match{font-weight:700;font-size:0.96rem;margin-bottom:8px;line-height:1.3}
+.pick-market{font-size:0.85rem;color:var(--g);font-weight:600;margin-bottom:6px}
+.pick-odd{font-size:1.4rem;font-weight:900;color:var(--ye);margin-bottom:8px}
+.bar-container{margin-top:8px;height:6px;background:rgba(255,255,255,0.08);border-radius:9999px;overflow:hidden}
+.bar-fill{height:100%;background:var(--g);transition:width 0.6s}
 </style>
 </head>
 <body>
@@ -76,7 +82,7 @@ input:focus{border-color:var(--g);background:rgba(0,230,118,.03)}
   <div class="card">
     <span class="field-label">Backend Railway URL</span>
     <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
-    <span class="saved-tag" id="urlSaved" style="display:none;color:var(--g);font-size:0.7rem;margin-top:6px">✓ Salvato automaticamente</span>
+    <span id="urlSaved" style="display:none;color:var(--g);font-size:0.7rem;margin-top:6px">✓ URL salvato</span>
   </div>
 
   <!-- PULSANTE TOP 20 -->
@@ -140,7 +146,7 @@ async function loadTopGoals(){
   const originalHTML = btn.innerHTML;
   btn.disabled = true;
   btn.style.opacity = '0.6';
-  btn.innerHTML = '⏳ Caricamento in corso...';
+  btn.innerHTML = '⏳ Caricamento...';
 
   document.getElementById('topGoalsResults').innerHTML = '';
 
@@ -155,41 +161,38 @@ async function loadTopGoals(){
 
     const picks = data.picks || [];
     if(picks.length === 0){
-      document.getElementById('topGoalsResults').innerHTML = `<div class="err-box show">Nessuna partita trovata nel range richiesto.</div>`;
+      document.getElementById('topGoalsResults').innerHTML = `<div class="err-box show">Nessuna partita trovata.</div>`;
       return;
     }
 
     let html = `<div class="result-card">
       <div style="margin-bottom:16px;font-weight:700;font-size:1.05rem">🎯 Top ${picks.length} Partite • ${data.day || 'Oggi'}</div>`;
 
-    picks.forEach((p, i) => {
-      const pct = Math.round(p.prob * 100);
+    picks.forEach((p) => {
+      const pct = Math.round(p.prob * 100) || 0;
       const isValue = p.edge > 0.02;
-      const leagueParts = (p.league || '').split(' ');
-      const flag = leagueParts[0] || '⚽';
-      const leagueName = leagueParts.slice(1).join(' ') || 'Campionato';
+      const marketName = p.market || p.name || 'Over 2.5 / GG';
 
       html += `
-        <div style="background:var(--c2);border-radius:12px;padding:14px;margin-bottom:10px;border-left:4px solid ${isValue ? 'var(--g)' : '#f97316'}">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-            <span style="font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:6px">
-              <span>${flag}</span> ${leagueName}
-            </span>
-            <span style="color:var(--mu);font-size:0.7rem">${fmtDate(p.commence_time)}</span>
+        <div class="pick">
+          <div class="pick-league">${p.league || 'Campionato'}</div>
+          <div class="pick-match">${p.match}</div>
+          
+          <div class="pick-market">
+            ${marketName} 
+            ${isValue ? '<span style="background:rgba(0,230,118,0.15);color:var(--g);font-size:0.68rem;padding:2px 8px;border-radius:4px;margin-left:6px">VALUE</span>' : ''}
           </div>
-          <div style="font-weight:700;margin-bottom:6px">${p.match}</div>
+          
           <div style="display:flex;justify-content:space-between;align-items:end">
-            <div>
-              ${p.name}
-              ${isValue ? '<span style="background:rgba(0,230,118,0.15);color:var(--g);font-size:0.65rem;padding:1px 7px;border-radius:4px;margin-left:6px">VALUE</span>' : ''}
-            </div>
+            <div style="font-size:1.4rem;font-weight:900;color:var(--ye)">@${p.odds}</div>
             <div style="text-align:right">
-              <div style="font-size:1.4rem;font-weight:900;color:var(--ye)">@${p.odds}</div>
-              <div style="color:var(--g);font-weight:600">${pct}%</div>
+              <div style="color:var(--g);font-weight:600;font-size:0.95rem">${pct}%</div>
+              <div style="color:var(--mu);font-size:0.7rem">${fmtDate(p.commence_time)}</div>
             </div>
           </div>
-          <div style="margin-top:10px;height:6px;background:rgba(255,255,255,0.08);border-radius:9999px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:var(--g);transition:width 0.6s"></div>
+          
+          <div class="bar-container">
+            <div class="bar-fill" style="width:${pct}%"></div>
           </div>
         </div>`;
     });
@@ -198,7 +201,7 @@ async function loadTopGoals(){
     document.getElementById('topGoalsResults').innerHTML = html;
 
   } catch(e) {
-    showErr('Errore di connessione al backend: ' + e.message);
+    showErr('Errore di connessione: ' + e.message);
   } finally {
     btn.disabled = false;
     btn.style.opacity = '1';
