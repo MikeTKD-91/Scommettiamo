@@ -7,192 +7,180 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.1);
+  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.12);
   --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
-  --br:rgba(255,255,255,.08);
-  --tx:#f1f5ff;--mu:#6b7fa3;--m2:#3d4e6b;
-  --ye:#fbbf24;
+  --br:rgba(255,255,255,.09);
+  --tx:#f1f5ff;--mu:#6b7fa3;--ye:#fbbf24;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;position:relative}
+body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;line-height:1.4}
 
-body::before{content:'';position:fixed;inset:0;
-  background:radial-gradient(circle at 20% 20%,rgba(0,230,118,.03) 0%,transparent 50%);
-  pointer-events:none;z-index:-1}
-
-.page{position:relative;z-index:1;padding:20px 16px 100px;display:flex;justify-content:center}
-.wrap{width:100%;max-width:460px}
+.page{padding:20px 16px 100px;max-width:460px;margin:0 auto}
 
 /* HEADER */
-.hdr{padding:16px 0 24px;text-align:center}
-.hdr-chip{display:inline-flex;align-items:center;gap:6px;background:var(--gb);border:1px solid rgba(0,230,118,.2);color:var(--g);font-size:0.68rem;font-weight:600;letter-spacing:1.5px;padding:5px 14px;border-radius:99px;margin-bottom:12px}
-.live-dot{width:6px;height:6px;background:var(--g);border-radius:50%;animation:pulse 1.8s infinite}
-.hdr-title{font-size:2.55rem;font-weight:900;letter-spacing:-1.2px;line-height:1;margin-bottom:6px}
-.hdr-title span{background:linear-gradient(135deg,var(--tx) 30%,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hdr-sub{color:var(--mu);font-size:0.78rem}
+.hdr{text-align:center;padding:16px 0 20px}
+.hdr-chip{background:var(--gb);color:var(--g);font-size:0.7rem;font-weight:600;padding:6px 14px;border-radius:99px;display:inline-flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;background:var(--g);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.hdr-title{font-size:2.6rem;font-weight:900;letter-spacing:-1.5px}
+.hdr-title span{background:linear-gradient(135deg,#fff,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 
 /* CONFIG */
-.card{background:var(--c1);border:1px solid var(--br);border-radius:18px;padding:18px;margin-bottom:20px}
-.field-label{color:var(--mu);font-size:0.68rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
-input[type=text]{
-  width:100%;background:var(--c2);border:1px solid var(--br);border-radius:12px;
-  padding:12px 14px;color:var(--tx);font-size:0.85rem;outline:none;
-}
-input:focus{border-color:var(--g);background:rgba(0,230,118,.03)}
+.card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:18px;margin-bottom:20px}
+.field-label{color:var(--mu);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 
 /* PULSANTE */
 .top-btn{
   width:100%;background:var(--c1);border:2px solid var(--br);border-radius:16px;
-  padding:18px 16px;color:var(--tx);font-weight:700;font-size:1rem;
+  padding:18px;color:var(--tx);font-weight:700;font-size:1.05rem;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
-  margin-bottom:20px;transition:all .25s;position:relative;z-index:10;
+  transition:all .3s;
 }
-.top-btn:hover{border-color:var(--g);color:var(--g);transform:translateY(-2px)}
+.top-btn:hover{border-color:var(--g);color:var(--g)}
 
 /* ERROR */
-.err-box{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.25);border-radius:14px;padding:14px 16px;color:#fb7185;font-size:0.85rem;margin-bottom:16px;display:none;gap:8px}
-.err-box.show{display:flex;align-items:center}
+.err-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:14px;padding:14px;color:#fb7185;display:none}
+.err-box.show{display:block}
 
 /* RISULTATI */
-.result-card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px;margin-bottom:16px}
+.result-card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px}
 .pick{
-  background:var(--c2);border-radius:12px;padding:14px;margin-bottom:10px;
-  border-left:4px solid var(--g);
+  background:var(--c2);border-radius:14px;padding:16px;margin-bottom:12px;
+  border-left:5px solid var(--g);
 }
-.pick-league{font-size:0.82rem;font-weight:700;color:var(--mu);margin-bottom:4px}
-.pick-match{font-weight:700;font-size:0.96rem;margin-bottom:8px;line-height:1.3}
-.pick-market{font-size:0.85rem;color:var(--g);font-weight:600;margin-bottom:6px}
-.pick-odd{font-size:1.4rem;font-weight:900;color:var(--ye);margin-bottom:8px}
-.bar-container{margin-top:8px;height:6px;background:rgba(255,255,255,0.08);border-radius:9999px;overflow:hidden}
-.bar-fill{height:100%;background:var(--g);transition:width 0.6s}
+.pick-league{font-size:0.82rem;color:var(--mu);font-weight:600;margin-bottom:6px}
+.pick-match{font-size:1rem;font-weight:700;margin-bottom:10px}
+.pick-market{font-size:0.95rem;font-weight:600;color:var(--g);margin-bottom:8px}
+.pick-info{display:flex;justify-content:space-between;align-items:flex-end}
+.pick-odd{font-size:1.45rem;font-weight:900;color:var(--ye)}
+.pick-prob{font-size:1.1rem;font-weight:700;color:var(--g)}
+.pick-time{color:var(--mu);font-size:0.78rem}
+.bar-container{height:7px;background:rgba(255,255,255,0.1);border-radius:999px;margin-top:12px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8);transition:width .8s ease}
 </style>
 </head>
 <body>
-<div class="page"><div class="wrap">
+<div class="page">
 
-  <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
     <h1 class="hdr-title"><span>Scommettiamo</span></h1>
-    <p class="hdr-sub">Poisson · Dixon-Coles · SofaScore</p>
+    <p style="color:var(--mu);margin-top:4px">Poisson · Dixon-Coles · SofaScore</p>
   </div>
 
-  <!-- CONFIG -->
   <div class="card">
     <span class="field-label">Backend Railway URL</span>
-    <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
-    <span id="urlSaved" style="display:none;color:var(--g);font-size:0.7rem;margin-top:6px">✓ URL salvato</span>
+    <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem">
+    <span id="urlSaved" style="display:none;color:#00e676;font-size:0.75rem;margin-top:8px">✓ URL salvato</span>
   </div>
 
-  <!-- PULSANTE TOP 20 -->
   <button onclick="loadTopGoals()" id="topBtn" class="top-btn">
     🎯 Top 20 Partite Over 2.5 / GG 
-    <span style="font-size:0.78rem;opacity:0.85">(quota 1.80–2.20)</span>
+    <span style="font-size:0.8rem;opacity:0.8">(quota 1.80–2.20)</span>
   </button>
 
-  <!-- ERROR -->
-  <div class="err-box" id="errBox"><span>⚠️</span><span id="errMsg"></span></div>
+  <div class="err-box" id="errBox"><strong>⚠️</strong> <span id="errMsg"></span></div>
 
-  <!-- RISULTATI -->
   <div id="topGoalsResults"></div>
 
-</div></div>
+</div>
 
 <script>
-function saveUrl(){
-  const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
-  if(bu) {
-    localStorage.setItem('backendUrl', bu);
+function saveUrl() {
+  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
+  if (url) {
+    localStorage.setItem('backendUrl', url);
     document.getElementById('urlSaved').style.display = 'block';
   }
 }
 
 window.onload = () => {
   const saved = localStorage.getItem('backendUrl');
-  if(saved) {
+  if (saved) {
     document.getElementById('backendUrl').value = saved;
     document.getElementById('urlSaved').style.display = 'block';
   }
 };
 
-function showErr(msg){
-  const box = document.getElementById('errBox');
-  box.classList.add('show');
+function showErr(msg) {
+  document.getElementById('errBox').classList.add('show');
   document.getElementById('errMsg').textContent = msg;
 }
-function hideErr(){
+function hideErr() {
   document.getElementById('errBox').classList.remove('show');
 }
 
-function fmtDate(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('it-IT', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+function fmtDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('it-IT', {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+  });
 }
 
-async function loadTopGoals(){
+async function loadTopGoals() {
   hideErr();
   const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
-  
-  if(!bu){
-    showErr('Inserisci l\'URL del tuo backend Railway');
+  if (!bu) {
+    showErr("Inserisci l'URL del backend Railway");
     return;
   }
-
   saveUrl();
 
   const btn = document.getElementById('topBtn');
-  const originalHTML = btn.innerHTML;
+  const original = btn.innerHTML;
   btn.disabled = true;
-  btn.style.opacity = '0.6';
-  btn.innerHTML = '⏳ Caricamento...';
+  btn.innerHTML = '⏳ Caricamento in corso...';
 
   document.getElementById('topGoalsResults').innerHTML = '';
 
   try {
-    const response = await fetch(`${bu}/top-goals?odds_min=1.80&odds_max=2.20&top=20`);
-    const data = await response.json();
+    const res = await fetch(`${bu}/top-goals?odds_min=1.80&odds_max=2.20&top=20`);
+    const data = await res.json();
 
-    if(data.error){
+    if (data.error) {
       showErr(data.error);
       return;
     }
 
     const picks = data.picks || [];
-    if(picks.length === 0){
-      document.getElementById('topGoalsResults').innerHTML = `<div class="err-box show">Nessuna partita trovata.</div>`;
+    if (picks.length === 0) {
+      document.getElementById('topGoalsResults').innerHTML = `<div class="err-box show">Nessuna partita trovata nel range quota.</div>`;
       return;
     }
 
-    let html = `<div class="result-card">
-      <div style="margin-bottom:16px;font-weight:700;font-size:1.05rem">🎯 Top ${picks.length} Partite • ${data.day || 'Oggi'}</div>`;
+    let html = `
+      <div class="result-card">
+        <div style="font-size:1.1rem;font-weight:700;margin-bottom:18px">
+          🎯 Top ${picks.length} Partite • ${data.day || 'Oggi'}
+        </div>`;
 
-    picks.forEach((p) => {
-      const pct = Math.round(p.prob * 100) || 0;
-      const isValue = p.edge > 0.02;
-      const marketName = p.market || p.name || 'Over 2.5 / GG';
+    picks.forEach(p => {
+      const prob = Math.round((p.prob || 0) * 100);
+      const isValue = (p.edge || 0) > 0.02;
+      const market = p.name || p.market || "Over 2.5 / GG";
 
       html += `
         <div class="pick">
           <div class="pick-league">${p.league || 'Campionato'}</div>
           <div class="pick-match">${p.match}</div>
-          
           <div class="pick-market">
-            ${marketName} 
-            ${isValue ? '<span style="background:rgba(0,230,118,0.15);color:var(--g);font-size:0.68rem;padding:2px 8px;border-radius:4px;margin-left:6px">VALUE</span>' : ''}
+            ${market}
+            ${isValue ? `<span style="background:rgba(0,230,118,0.2);color:var(--g);font-size:0.7rem;padding:2px 8px;border-radius:6px;margin-left:8px">VALUE</span>` : ''}
           </div>
           
-          <div style="display:flex;justify-content:space-between;align-items:end">
-            <div style="font-size:1.4rem;font-weight:900;color:var(--ye)">@${p.odds}</div>
+          <div class="pick-info">
+            <div>
+              <span class="pick-odd">@${p.odds}</span>
+            </div>
             <div style="text-align:right">
-              <div style="color:var(--g);font-weight:600;font-size:0.95rem">${pct}%</div>
-              <div style="color:var(--mu);font-size:0.7rem">${fmtDate(p.commence_time)}</div>
+              <span class="pick-prob">${prob}%</span><br>
+              <span class="pick-time">${fmtDate(p.commence_time)}</span>
             </div>
           </div>
           
           <div class="bar-container">
-            <div class="bar-fill" style="width:${pct}%"></div>
+            <div class="bar-fill" style="width: ${prob}%"></div>
           </div>
         </div>`;
     });
@@ -200,12 +188,11 @@ async function loadTopGoals(){
     html += `</div>`;
     document.getElementById('topGoalsResults').innerHTML = html;
 
-  } catch(e) {
-    showErr('Errore di connessione: ' + e.message);
+  } catch (e) {
+    showErr("Errore di connessione al backend: " + e.message);
   } finally {
     btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.innerHTML = originalHTML;
+    btn.innerHTML = original;
   }
 }
 </script>
