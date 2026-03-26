@@ -189,6 +189,14 @@ input:focus{border-color:rgba(0,230,118,.35);background:rgba(0,230,118,.03)}
   <div class="stat-card"><div class="stat-n" id="sV">0</div><div class="stat-l">Value Bet</div></div>
 </div>
 
+<!-- TOP GOALS BUTTON -->
+<button onclick="loadTopGoals()" id="topBtn" style="width:100%;background:transparent;border:1px solid var(--br);border-radius:14px;padding:14px;color:var(--mu);font-weight:600;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;font-family:Outfit,sans-serif;transition:all .2s">
+  🎯 Top 20 Partite Over 2.5 / GG  <span style="font-size:.7rem;color:var(--m2)">(quota 1.80–2.20)</span>
+</button>
+
+<!-- TOP GOALS RESULTS -->
+<div id="topGoalsResults"></div>
+
 <!-- RESULTS -->
 <div id="results"></div>
 
@@ -300,6 +308,64 @@ async function syncStats(){
     else{msg.style.color='var(--g)';msg.textContent='✓ '+d.status;}
   }catch(e){msg.textContent='Errore: '+e.message;}
   btn.disabled=false;
+}
+
+async function loadTopGoals(){
+  const bu=document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  if(!bu){showErr('Inserisci il Backend URL.');return}
+  const btn=document.getElementById('topBtn');
+  btn.disabled=true;btn.innerHTML='<div class="spin"></div> &nbsp;Caricamento...';
+  document.getElementById('topGoalsResults').innerHTML='';
+
+  try{
+    const r=await fetch(bu+'/top-goals?odds_min=1.80&odds_max=2.20&top=20');
+    const d=await r.json();
+    if(d.error){showErr(d.error);btn.disabled=false;btn.innerHTML='🎯 Top 20 Partite Over 2.5 / GG';return}
+
+    const picks=d.picks||[];
+    if(!picks.length){
+      document.getElementById('topGoalsResults').innerHTML='<div class="err-box show" style="margin-bottom:12px">⚠️ Nessuna partita trovata nel range quota 1.80–2.20</div>';
+      btn.disabled=false;btn.innerHTML='🎯 Top 20 Partite Over 2.5 / GG';return;
+    }
+
+    let html=`<div style="background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px;margin-bottom:14px;animation:up .3s ease">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-family:Outfit,sans-serif;font-weight:700;font-size:1rem">🎯 Top ${picks.length} Partite</div>
+        <div style="font-size:.65rem;color:var(--mu);background:var(--c2);padding:4px 10px;border-radius:99px">Quota 1.80–2.20 · ${d.day||'oggi'}</div>
+      </div>`;
+
+    picks.forEach((p,i)=>{
+      const pct=Math.round(p.prob*100);
+      const isVal=p.edge>0.02;
+      html+=`<div style="background:var(--c2);border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:3px solid ${isVal?'var(--g)':'var(--or)'}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="color:var(--g);font-size:.68rem;font-weight:600">${p.league}</span>
+          <span style="color:var(--mu);font-size:.65rem">${p.commence_time?new Date(p.commence_time).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:22px;height:22px;border-radius:6px;background:var(--gb);color:var(--g);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.match}</div>
+            <div style="font-size:.7rem;color:var(--mu);margin-top:2px">${p.name} ${isVal?'<span style="background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.25);color:var(--g);font-size:.58rem;padding:1px 5px;border-radius:4px;margin-left:3px">VALUE</span>':''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--ye)">@${p.odds}</div>
+            <div style="font-size:.65rem;color:var(--g);font-weight:600">${pct}%</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+          <div style="background:rgba(255,255,255,.05);border-radius:99px;height:4px;flex:1">
+            <div style="height:4px;border-radius:99px;background:var(--g);width:${pct}%;transition:width .6s"></div>
+          </div>
+        </div>
+      </div>`;
+    });
+
+    html+='</div>';
+    document.getElementById('topGoalsResults').innerHTML=html;
+
+  }catch(e){showErr('Errore: '+e.message);}
+  btn.disabled=false;btn.innerHTML='🎯 Top 20 Partite Over 2.5 / GG';
 }
 
 async function gen(){
