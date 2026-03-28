@@ -125,6 +125,21 @@ def calc_probs(lh, la):
             if h > 0 and a > 0: gg += p
     return {"over15": min(o15, .99), "over25": min(o25, .99), "gg": min(gg, .99)}
 
+# -- Kelly Criterion ------------------------------------------------------------------------------
+def kelly_fraction(prob, odds, fraction=0.25):
+    """
+    Criterio di Kelly frazionato (default: Kelly/4 per sicurezza).
+    Restituisce la percentuale del bankroll da puntare (0.0 – 1.0).
+    prob  = probabilità stimata dal modello (0–1)
+    odds  = quota decimale offerta dal bookmaker
+    fraction = divisore di Kelly (0.25 = quarter-Kelly, più conservativo)
+    """
+    b = odds - 1.0          # profitto netto per unità puntata
+    q = 1.0 - prob          # probabilità di perdita
+    k = (b * prob - q) / b  # Kelly pieno
+    k = max(k, 0.0)         # mai puntare se edge negativo
+    return round(k * fraction, 4)
+
 # -- Modelli statistici ------------------------------------------------------------------------------
 def regress(observed, avg, n, k=REGRESSION_K):
     return (n * observed + k * avg) / (n + k)
@@ -447,7 +462,11 @@ def analyze_event(ev, start_utc, end_utc):
         "has_real_stats": True, "hist_over25": hist_conf,
         "data_quality": data_quality,
     }
-    return [{**base, **p, "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15} for p in picks]
+    return [{
+        **base, **p,
+        "score": p["edge"]*50 + p["prob"]*30 + (fh+fa)*10 + 15,
+        "kelly_fraction": kelly_fraction(p["prob"], p["odds"]),
+    } for p in picks]
 
 # -- Combo builder ------------------------------------------------------------------------------
 def greedy_combo(picks, target, cfg):
@@ -642,6 +661,7 @@ def top_goals():
             "hist_over25":    p.get("hist_over25"),
             "data_quality":   p.get("data_quality"),
             "commence_time":  p.get("commence_time"),
+            "kelly_fraction": p.get("kelly_fraction", 0.0),
         })
     day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
     return jsonify({
@@ -706,12 +726,15 @@ def generate():
             for p in combo: used_matches.add(p["match"])
             total_odds  = round(math.prod(p["odds"] for p in combo), 2)
             combo_prob  = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            combo_prob_raw = math.prod(p["prob"] for p in combo)
             value_count = sum(1 for p in combo if p["edge"] > 0.00)
+            combo_kelly = kelly_fraction(combo_prob_raw, total_odds)
             multiples.append({
                 "target": tgt, "total_odds": total_odds,
                 "combo_probability": combo_prob, "picks": combo,
                 "value_in_combo": value_count,
                 "quality": "value" if value_count == len(combo) else "mixed" if value_count > 0 else "low",
+                "kelly_fraction": combo_kelly,
             })
             log.info(f"Multipla x{tgt}: quota {total_odds}, prob {combo_prob}%, quality={multiples[-1]['quality']}")
         else:
