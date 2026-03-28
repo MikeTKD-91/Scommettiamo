@@ -579,7 +579,95 @@ def picks_debug():
                     "value_bets": sum(1 for p in unique if p["edge"] > 0.02),
                     "picks": unique[:50]})
 
-# -- TOP GOALS: Over 2.5 & GG | quote 1.80-2.20 | top 20 per probabilita' -------------------
+# -- TOP VALUE: le 5 singole con edge più alto per bankroll piccoli -------------------
+@app.route("/top-value")
+@timed
+def top_value():
+    """
+    Restituisce le migliori N singole ordinate per edge decrescente.
+    Pensato per bankroll piccoli: filtra solo pick con edge reale positivo,
+    qualsiasi mercato e quota, e calcola puntata Kelly consigliata.
+
+    Query params:
+        top       int    default 5
+        min_edge  float  default 0.02
+        date      str    YYYY-MM-DD (opzionale)
+    """
+    TOP_N    = int(request.args.get("top", 5))
+    MIN_EDGE = float(request.args.get("min_edge", 0.02))
+    date_req = request.args.get("date")
+    now_utc  = datetime.now(timezone.utc)
+    now_it   = now_utc.astimezone(ITALY_TZ)
+    all_picks, day_offset = [], 0
+    for day_offset in range(3):
+        day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
+        date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
+        start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
+        end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        events   = get_today_events(date_str)
+        log.info(f"[top-value] Analisi {len(events)} eventi per {date_str}")
+        day_picks = []
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
+            for fut in as_completed(futures):
+                try: day_picks.extend(fut.result())
+                except Exception as e: log.error(f"analyze_event error: {e}")
+        if day_picks:
+            all_picks = day_picks
+            break
+        if date_req:
+            break
+    if not all_picks:
+        return jsonify({"error": "Nessuna partita trovata con dati statistici nei prossimi 3 giorni."}), 404
+    # dedup
+    seen, unique = set(), []
+    for p in all_picks:
+        k = f"{p['match']}|{p['name']}"
+        if k not in seen: seen.add(k); unique.append(p)
+    # filtra per edge minimo e data quality non bassa
+    filtered = [
+        p for p in unique
+        if p["edge"] >= MIN_EDGE and p.get("data_quality") != "low"
+    ]
+    # ordina per edge decrescente, poi prob
+    filtered.sort(key=lambda p: (p["edge"], p["prob"]), reverse=True)
+    top = filtered[:TOP_N]
+    if not top:
+        return jsonify({
+            "error": f"Nessun pick con edge ≥ {MIN_EDGE} trovato. Prova ad abbassare min_edge.",
+            "total_analyzed": len(unique)
+        }), 404
+    result = []
+    for rank, p in enumerate(top, start=1):
+        kf = p.get("kelly_fraction", 0.0)
+        result.append({
+            "rank":           rank,
+            "match":          p["match"],
+            "league":         p["league"],
+            "market":         p["name"],
+            "odds":           p["odds"],
+            "probability":    f"{round(p['prob'] * 100, 1)}%",
+            "prob_raw":       p["prob"],
+            "edge":           p["edge"],
+            "edge_pct":       f"{round(p['edge'] * 100, 1)}%",
+            "kelly_fraction": kf,
+            "kelly_pct":      f"{round(kf * 100, 1)}%",
+            "exp_goals":      p.get("exp_g"),
+            "data_quality":   p.get("data_quality"),
+            "commence_time":  p.get("commence_time"),
+        })
+    day_label = "dopodomani" if day_offset == 2 else "domani" if day_offset == 1 else "oggi"
+    return jsonify({
+        "day":            day_label,
+        "date":           date_str,
+        "total_analyzed": len(unique),
+        "total_value":    len(filtered),
+        "showing":        len(result),
+        "picks":          result,
+        "note":           "Punta il kelly_pct del tuo bankroll su ciascuna singola, indipendentemente."
+    })
+
+
 @app.route("/top-goals")
 @timed
 def top_goals():
