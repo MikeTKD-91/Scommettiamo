@@ -58,6 +58,9 @@ body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-he
 .pick-time{color:var(--mu);font-size:0.78rem}
 .bar-container{height:7px;background:rgba(255,255,255,0.1);border-radius:999px;margin-top:12px;overflow:hidden}
 .bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8);transition:width .8s ease}
+.pick-kelly{font-size:0.78rem;color:#a78bfa;font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px}
+.pick-kelly span.kelly-badge{background:rgba(167,139,250,0.15);color:#a78bfa;border-radius:6px;padding:2px 8px;font-size:0.72rem}
+.pick-kelly span.kelly-stake{color:#f1f5ff;font-weight:700}
 </style>
 </head>
 <body>
@@ -73,6 +76,14 @@ body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-he
     <span class="field-label">Backend Railway URL</span>
     <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem">
     <span id="urlSaved" style="display:none;color:#00e676;font-size:0.75rem;margin-top:8px">✓ URL salvato</span>
+  </div>
+
+  <div class="card">
+    <span class="field-label">💰 Bankroll (€)</span>
+    <input type="number" id="bankroll" placeholder="es. 100" min="1" step="1"
+      style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem"
+      oninput="localStorage.setItem('bankroll', this.value)">
+    <p style="color:var(--mu);font-size:0.72rem;margin-top:6px">Usato per calcolare la puntata Kelly consigliata su ogni pick</p>
   </div>
 
   <button onclick="loadTopGoals()" id="topBtn" class="top-btn">
@@ -101,6 +112,8 @@ window.onload = () => {
     document.getElementById('backendUrl').value = saved;
     document.getElementById('urlSaved').style.display = 'block';
   }
+  const bk = localStorage.getItem('bankroll');
+  if (bk) document.getElementById('bankroll').value = bk;
 };
 
 function showErr(msg) {
@@ -156,9 +169,13 @@ async function loadTopGoals() {
         </div>`;
 
     picks.forEach(p => {
-      const prob = Math.round((p.prob || 0) * 100);
+      const prob = Math.round((p.prob_raw || p.prob || 0) * 100);
       const isValue = (p.edge || 0) > 0.02;
       const market = p.name || p.market || "Over 2.5 / GG";
+      const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
+      const kf = p.kelly_fraction || 0;
+      const kellyPct = (kf * 100).toFixed(1);
+      const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
 
       html += `
         <div class="pick">
@@ -178,6 +195,17 @@ async function loadTopGoals() {
               <span class="pick-time">${fmtDate(p.commence_time)}</span>
             </div>
           </div>
+
+          ${kf > 0 ? `
+          <div class="pick-kelly">
+            <span class="kelly-badge">Kelly ¼</span>
+            <span>${kellyPct}% del bankroll</span>
+            ${kellyEur ? `<span class="kelly-stake">→ €${kellyEur}</span>` : ''}
+          </div>` : `
+          <div class="pick-kelly" style="color:#6b7fa3">
+            <span class="kelly-badge" style="background:rgba(107,127,163,0.12);color:#6b7fa3">No edge</span>
+            <span>Puntata sconsigliata</span>
+          </div>`}
           
           <div class="bar-container">
             <div class="bar-fill" style="width: ${prob}%"></div>
