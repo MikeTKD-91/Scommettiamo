@@ -599,22 +599,19 @@ def top_value():
     now_utc  = datetime.now(timezone.utc)
     now_it   = now_utc.astimezone(ITALY_TZ)
     all_picks, day_offset = [], 0
-    for day_offset in range(3):
+    # Cerca su 7 giorni accumulando tutti i pick disponibili
+    for day_offset in range(7):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
         start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         events   = get_today_events(date_str)
         log.info(f"[top-value] Analisi {len(events)} eventi per {date_str}")
-        day_picks = []
         with ThreadPoolExecutor(max_workers=10) as ex:
             futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
             for fut in as_completed(futures):
-                try: day_picks.extend(fut.result())
+                try: all_picks.extend(fut.result())
                 except Exception as e: log.error(f"analyze_event error: {e}")
-        if day_picks:
-            all_picks = day_picks
-            break
         if date_req:
             break
     if not all_picks:
@@ -681,44 +678,40 @@ def top_goals():
         top       int    default 20
         date      str    YYYY-MM-DD (opzionale, default = oggi)
     """
-    ODDS_MIN = float(request.args.get("odds_min", 1.50))
-    ODDS_MAX = float(request.args.get("odds_max", 2.50))
-    TOP_N    = int(request.args.get("top", 20))
+    ODDS_MIN = float(request.args.get("odds_min", 2.00))
+    ODDS_MAX = float(request.args.get("odds_max", 2.20))
+    TOP_N    = int(request.args.get("top", 10))
     date_req = request.args.get("date")
     now_utc  = datetime.now(timezone.utc)
     now_it   = now_utc.astimezone(ITALY_TZ)
-    all_picks, day_offset = [], 0
-    for day_offset in range(3):
+    all_picks = []
+    for day_offset in range(7):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
         start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         events   = get_today_events(date_str)
         log.info(f"[top-goals] Analisi {len(events)} eventi per {date_str}")
-        day_picks = []
         with ThreadPoolExecutor(max_workers=10) as ex:
             futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
             for fut in as_completed(futures):
-                try: day_picks.extend(fut.result())
+                try: all_picks.extend(fut.result())
                 except Exception as e: log.error(f"analyze_event error: {e}")
-        if day_picks:
-            all_picks = day_picks
-            break
         if date_req:
             break
     if not all_picks:
-        return jsonify({"error": "Nessuna partita trovata con dati statistici nei prossimi 3 giorni."}), 404
+        return jsonify({"error": "Nessuna partita trovata con dati statistici nei prossimi 7 giorni."}), 404
     seen, unique = set(), []
     for p in all_picks:
         k = f"{p['match']}|{p['name']}"
         if k not in seen: seen.add(k); unique.append(p)
     filtered = [
         p for p in unique
-        if p["market"] in ("over25", "gg")
+        if p["market"] == "gg"
         and ODDS_MIN <= p["odds"] <= ODDS_MAX
     ]
     if not filtered:
-        return jsonify({"error": f"Nessun pick Over 2.5 / GG con quota tra {ODDS_MIN} e {ODDS_MAX}.",
+        return jsonify({"error": f"Nessun pick Goal/Goal con quota tra {ODDS_MIN} e {ODDS_MAX} nei prossimi 7 giorni.",
                         "total_picks_analyzed": len(unique)}), 404
     filtered.sort(key=lambda p: p["prob"], reverse=True)
     top = filtered[:TOP_N]
