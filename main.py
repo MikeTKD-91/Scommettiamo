@@ -642,42 +642,49 @@ def giornata():
         k = p["match"]
         if k not in seen: seen.add(k); unique_gg.append(p)
 
-    # ordina per probabilità decrescente
-    unique_gg.sort(key=lambda p: p["prob"], reverse=True)
+    # solo VALUE: edge > 0 e data_quality non bassa
+    value_gg = [
+        p for p in unique_gg
+        if p["edge"] > 0 and p.get("data_quality") != "low"
+    ]
+    value_gg.sort(key=lambda p: (p["edge"], p["prob"]), reverse=True)
 
-    # -- Costruisci TUTTE le multiple da esattamente 3 pick --
+    if not value_gg:
+        return jsonify({
+            "error": "Nessuna VALUE bet GG trovata oggi. Torna domani o allarga il range quote.",
+            "partite_analizzate": len(unique_gg),
+        }), 404
+
+    # -- Tutte le multiple da 3 pick VALUE --
     multiples = []
-    if len(unique_gg) >= 3:
-        top_pool = unique_gg[:15]  # considera le prime 15 per non esplodere le combinazioni
+    if len(value_gg) >= 3:
+        top_pool = value_gg[:15]
         for combo in itertools.combinations(top_pool, 3):
-            # una sola partita per combo
             if len({p["match"] for p in combo}) != 3: continue
-            total_odds = round(math.prod(p["odds"] for p in combo), 2)
-            combo_prob = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            total_odds     = round(math.prod(p["odds"] for p in combo), 2)
+            combo_prob     = round(math.prod(p["prob"] for p in combo) * 100, 1)
             combo_prob_raw = math.prod(p["prob"] for p in combo)
-            edge_sum   = round(sum(p["edge"] for p in combo), 3)
-            kf         = kelly_fraction(combo_prob_raw, total_odds)
+            edge_sum       = round(sum(p["edge"] for p in combo), 3)
+            kf             = kelly_fraction(combo_prob_raw, total_odds)
             multiples.append({
-                "picks":        [{"match": p["match"], "league": p["league"],
-                                  "odds": p["odds"], "prob": f"{round(p['prob']*100,1)}%",
-                                  "edge": p["edge"], "commence_time": p.get("commence_time")}
-                                 for p in combo],
-                "total_odds":   total_odds,
-                "combo_prob":   f"{combo_prob}%",
+                "picks":          [{"match": p["match"], "league": p["league"],
+                                    "odds": p["odds"], "prob": f"{round(p['prob']*100,1)}%",
+                                    "edge": p["edge"], "commence_time": p.get("commence_time")}
+                                   for p in combo],
+                "total_odds":     total_odds,
+                "combo_prob":     f"{combo_prob}%",
                 "combo_prob_raw": combo_prob_raw,
-                "edge_sum":     edge_sum,
+                "edge_sum":       edge_sum,
                 "kelly_fraction": kf,
-                "kelly_pct":    f"{round(kf*100,1)}%",
-                "value":        edge_sum > 0,
+                "kelly_pct":      f"{round(kf*100,1)}%",
+                "value":          True,
             })
-        # ordina per probabilità combinata decrescente
         multiples.sort(key=lambda m: m["combo_prob_raw"], reverse=True)
-        # rimuovi combo_prob_raw dall'output finale
         for m in multiples: m.pop("combo_prob_raw", None)
 
     # formatta singole output
     singole = []
-    for rank, p in enumerate(unique_gg, start=1):
+    for rank, p in enumerate(value_gg, start=1):
         kf = p.get("kelly_fraction", 0.0)
         singole.append({
             "rank":           rank,
