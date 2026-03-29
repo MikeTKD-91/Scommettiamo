@@ -604,12 +604,16 @@ def giornata():
     gg_picks = []
     used_date = None
     day_label = "oggi"
+    total_events_analyzed = 0
+    total_with_stats = 0
+    total_with_gg_odds = 0
     for day_offset in range(3):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
         start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
         end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         events   = get_today_events(date_str)
+        total_events_analyzed += len(events)
         log.info(f"[giornata] Analisi {len(events)} eventi per {date_str}")
         day_picks = []
         with ThreadPoolExecutor(max_workers=10) as ex:
@@ -617,6 +621,8 @@ def giornata():
             for fut in as_completed(futures):
                 try: day_picks.extend(fut.result())
                 except Exception as e: log.error(f"analyze_event error: {e}")
+        total_with_stats += len({p["match"] for p in day_picks})
+        total_with_gg_odds += len({p["match"] for p in day_picks if p["market"] == "gg"})
         # filtra solo GG nel range quota
         gg_day = [
             p for p in day_picks
@@ -705,6 +711,13 @@ def giornata():
         "day":              day_label,
         "date":             used_date,
         "odds_range":       f"{ODDS_MIN}–{ODDS_MAX}",
+        "stats": {
+            "partite_analizzate": total_events_analyzed,
+            "con_dati_statistici": total_with_stats,
+            "con_quota_gg":        total_with_gg_odds,
+            "nel_range_quota":     len(unique_gg),
+            "value_trovate":       len(value_gg),
+        },
         "singole_trovate":  len(singole),
         "multiple_trovate": len(multiples),
         "singole":          singole,
