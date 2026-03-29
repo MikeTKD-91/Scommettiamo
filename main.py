@@ -614,147 +614,115 @@ def picks_debug():
 @timed
 def giornata():
     """
-    Endpoint principale per uso quotidiano.
-    - Cerca partite di oggi (o domani se oggi è vuoto)
-    - Filtra solo Goal/Goal in range quota configurabile
-    - Restituisce: singole GG ordinate per prob + TUTTE le multiple da esattamente 3 pick
+    Restituisce le top partite GG ordinate per probabilita' modello.
+    NON richiede quote da SofaScore - le quote vengono inserite dall'utente.
     
     Query params:
-        odds_min  float  default 1.70
-        odds_max  float  default 2.00
-        date      str    YYYY-MM-DD (opzionale)
+        top   int    default 10
+        date  str    YYYY-MM-DD (opzionale)
     """
-    ODDS_MIN = float(request.args.get("odds_min", 1.70))
-    ODDS_MAX = float(request.args.get("odds_max", 2.00))
+    TOP_N    = int(request.args.get("top", 10))
+    date_req = request.args.get("date")
     now_utc  = datetime.now(timezone.utc)
     now_it   = now_utc.astimezone(ITALY_TZ)
-    date_req = request.args.get("date")
 
-    # Cerca oggi + domani accumulando picks futuri
-    gg_picks = []
+    all_picks = []
     used_date = None
     day_label = "oggi"
-    total_events_analyzed = 0
-    total_with_stats = 0
-    total_with_gg_odds = 0
+    total_events = 0
+
     for day_offset in range(3):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
-        # FIX: usa sempre mezzanotte come start, non l'ora attuale
-        # Cosi' non scarta le partite gia' passate oggi ma non ancora finite di essere indicizzate
         start    = day_dt.astimezone(timezone.utc)
-        end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        end      = (day_dt.replace(hour=23, minute=59, second=59)).astimezone(timezone.utc)
         events   = get_today_events(date_str)
-        total_events_analyzed += len(events)
-        log.info(f"[giornata] Analisi {len(events)} eventi per {date_str}")
+        total_events += len(events)
+        log.info(f"[giornata] {len(events)} eventi per {date_str}")
+
         day_picks = []
         with ThreadPoolExecutor(max_workers=10) as ex:
-            futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
+            futures = {ex.submit(analyze_event_noOdds, ev, start, end): ev for ev in events}
             for fut in as_completed(futures):
                 try: day_picks.extend(fut.result())
-                except Exception as e: log.error(f"analyze_event error: {e}")
-        total_with_stats += len({p["match"] for p in day_picks})
-        total_with_gg_odds += len({p["match"] for p in day_picks if p["market"] == "gg"})
-        # filtra solo GG nel range quota
-        gg_day = [
-            p for p in day_picks
-            if p["market"] == "gg" and ODDS_MIN <= p["odds"] <= ODDS_MAX
-        ]
-        if gg_day:
-            gg_picks = gg_day
+                except Exception as e: log.error(f"analyze_event_noOdds error: {e}")
+
+        if day_picks:
+            all_picks = day_picks
             used_date = date_str
             day_label = ["oggi", "domani", "dopodomani"][day_offset]
             break
-        if date_req:
-            break
+        if date_req: break
 
-    if not gg_picks:
-        return jsonify({
-            "error": f"Nessuna partita Goal/Goal con quota {ODDS_MIN}–{ODDS_MAX} trovata nei prossimi 3 giorni.",
-            "suggerimento": f"Prova ad allargare il range con odds_min e odds_max"
-        }), 404
+    if not all_picks:
+        return jsonify({"error": "Nessuna partita con dati statistici trovata nei prossimi 3 giorni.",
+                        "partite_scaricate": total_events}), 404
 
-    # dedup
-    seen, unique_gg = set(), []
-    for p in gg_picks:
-        k = p["match"]
-        if k not in seen: seen.add(k); unique_gg.append(p)
+    # dedup per match
+    seen, unique = set(), []
+    for p in all_picks:
+        if p["match"] not in seen:
+            seen.add(p["match"]); unique.append(p)
 
-    # solo VALUE: edge > 0 e data_quality non bassa
-    value_gg = [
-        p for p in unique_gg
-        if p["edge"] > 0 and p.get("data_quality") != "low"
-    ]
-    value_gg.sort(key=lambda p: (p["edge"], p["prob"]), reverse=True)
-
-    if not value_gg:
-        return jsonify({
-            "error": "Nessuna VALUE bet GG trovata oggi. Torna domani o allarga il range quote.",
-            "partite_analizzate": len(unique_gg),
-        }), 404
-
-    # -- Tutte le multiple da 3 pick VALUE --
-    multiples = []
-    if len(value_gg) >= 3:
-        top_pool = value_gg[:15]
-        for combo in itertools.combinations(top_pool, 3):
-            if len({p["match"] for p in combo}) != 3: continue
-            total_odds     = round(math.prod(p["odds"] for p in combo), 2)
-            combo_prob     = round(math.prod(p["prob"] for p in combo) * 100, 1)
-            combo_prob_raw = math.prod(p["prob"] for p in combo)
-            edge_sum       = round(sum(p["edge"] for p in combo), 3)
-            kf             = kelly_fraction(combo_prob_raw, total_odds)
-            multiples.append({
-                "picks":          [{"match": p["match"], "league": p["league"],
-                                    "odds": p["odds"], "prob": f"{round(p['prob']*100,1)}%",
-                                    "edge": p["edge"], "commence_time": p.get("commence_time")}
-                                   for p in combo],
-                "total_odds":     total_odds,
-                "combo_prob":     f"{combo_prob}%",
-                "combo_prob_raw": combo_prob_raw,
-                "edge_sum":       edge_sum,
-                "kelly_fraction": kf,
-                "kelly_pct":      f"{round(kf*100,1)}%",
-                "value":          True,
-            })
-        multiples.sort(key=lambda m: m["combo_prob_raw"], reverse=True)
-        for m in multiples: m.pop("combo_prob_raw", None)
-
-    # formatta singole output
-    singole = []
-    for rank, p in enumerate(value_gg, start=1):
-        kf = p.get("kelly_fraction", 0.0)
-        singole.append({
-            "rank":           rank,
-            "match":          p["match"],
-            "league":         p["league"],
-            "odds":           p["odds"],
-            "probability":    f"{round(p['prob']*100,1)}%",
-            "prob_raw":       p["prob"],
-            "edge":           p["edge"],
-            "edge_pct":       f"{round(p['edge']*100,1)}%",
-            "kelly_fraction": kf,
-            "kelly_pct":      f"{round(kf*100,1)}%",
-            "data_quality":   p.get("data_quality"),
-            "commence_time":  p.get("commence_time"),
-        })
+    # ordina per probabilita' GG decrescente
+    unique.sort(key=lambda p: p["prob_gg"], reverse=True)
+    top = unique[:TOP_N]
 
     return jsonify({
-        "day":              day_label,
-        "date":             used_date,
-        "odds_range":       f"{ODDS_MIN}–{ODDS_MAX}",
-        "stats": {
-            "partite_analizzate": total_events_analyzed,
-            "con_dati_statistici": total_with_stats,
-            "con_quota_gg":        total_with_gg_odds,
-            "nel_range_quota":     len(unique_gg),
-            "value_trovate":       len(value_gg),
-        },
-        "singole_trovate":  len(singole),
-        "multiple_trovate": len(multiples),
-        "singole":          singole,
-        "multiple":         multiples,
+        "day":               day_label,
+        "date":              used_date,
+        "partite_analizzate": total_events,
+        "partite_con_stats": len(unique),
+        "showing":           len(top),
+        "note":              "Inserisci la quota GG dal tuo bookmaker per calcolare edge e Kelly",
+        "picks":             top,
     })
+
+def analyze_event_noOdds(ev, start_utc, end_utc):
+    """Analizza evento senza fetch delle odds - solo statistiche e probabilita'."""
+    ct = ev.get("startTimestamp")
+    if not ct: return []
+    ev_time = datetime.fromtimestamp(ct, tz=timezone.utc)
+    status_type = ev.get("status", {}).get("type", "")
+    if status_type in ("inprogress", "finished", "postponed", "canceled"): return []
+    if not (start_utc <= ev_time <= end_utc): return []
+
+    ht  = ev.get("homeTeam", {}); at  = ev.get("awayTeam", {})
+    hn  = ht.get("name", "");     an  = at.get("name", "")
+    hid = ht.get("id");           aid = at.get("id")
+    tourn = ev.get("tournament", {})
+    ut    = tourn.get("uniqueTournament", {})
+    t_id  = ut.get("id"); s_id = ev.get("season", {}).get("id")
+    lg    = tourn.get("name", "")
+    flag  = FLAG_MAP.get(tourn.get("category", {}).get("flag", "").lower(), "\u26bd")
+
+    hs  = get_team_stats(hid, t_id, s_id)
+    as_ = get_team_stats(aid, t_id, s_id)
+    if not (hs or as_): return []
+
+    lh, la = calc_lambda(hs, as_)
+    pr = calc_probs(lh, la)
+    fh = round(exp_form(hs), 2)
+    fa = round(exp_form(as_), 2)
+
+    has_shots_h = (hs.get("shots") or 0) > 0 or (hs.get("shots_on_target") or 0) > 0 if hs else False
+    has_shots_a = (as_.get("shots") or 0) > 0 or (as_.get("shots_on_target") or 0) > 0 if as_ else False
+    data_quality = "high" if (has_shots_h and has_shots_a) else "medium" if (has_shots_h or has_shots_a) else "low"
+
+    return [{
+        "match":         f"{hn} vs {an}",
+        "league":        f"{flag} {lg}",
+        "commence_time": ev_time.isoformat(),
+        "prob_gg":       round(pr["gg"], 3),
+        "prob_over25":   round(pr["over25"], 3),
+        "prob_gg_pct":   f"{round(pr['gg']*100, 1)}%",
+        "exp_goals":     round(lh + la, 2),
+        "home_form":     fh,
+        "away_form":     fa,
+        "data_quality":  data_quality,
+        "lambda_home":   round(lh, 3),
+        "lambda_away":   round(la, 3),
+    }]
 
 
 @app.route("/top-value")
