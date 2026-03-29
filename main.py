@@ -579,7 +579,132 @@ def picks_debug():
                     "value_bets": sum(1 for p in unique if p["edge"] > 0.02),
                     "picks": unique[:50]})
 
-# -- TOP VALUE: le 5 singole con edge più alto per bankroll piccoli -------------------
+# -- GIORNATA: GG singole + multiple da 3 pick quota 1.70-2.00 per il giorno corrente ----
+@app.route("/giornata")
+@timed
+def giornata():
+    """
+    Endpoint principale per uso quotidiano.
+    - Cerca partite di oggi (o domani se oggi è vuoto)
+    - Filtra solo Goal/Goal in range quota configurabile
+    - Restituisce: singole GG ordinate per prob + TUTTE le multiple da esattamente 3 pick
+    
+    Query params:
+        odds_min  float  default 1.70
+        odds_max  float  default 2.00
+        date      str    YYYY-MM-DD (opzionale)
+    """
+    ODDS_MIN = float(request.args.get("odds_min", 1.70))
+    ODDS_MAX = float(request.args.get("odds_max", 2.00))
+    now_utc  = datetime.now(timezone.utc)
+    now_it   = now_utc.astimezone(ITALY_TZ)
+    date_req = request.args.get("date")
+
+    # Cerca oggi, poi domani se oggi è vuoto
+    gg_picks = []
+    used_date = None
+    day_label = "oggi"
+    for day_offset in range(3):
+        day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
+        date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
+        start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
+        end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
+        events   = get_today_events(date_str)
+        log.info(f"[giornata] Analisi {len(events)} eventi per {date_str}")
+        day_picks = []
+        with ThreadPoolExecutor(max_workers=10) as ex:
+            futures = {ex.submit(analyze_event, ev, start, end): ev for ev in events}
+            for fut in as_completed(futures):
+                try: day_picks.extend(fut.result())
+                except Exception as e: log.error(f"analyze_event error: {e}")
+        # filtra solo GG nel range quota
+        gg_day = [
+            p for p in day_picks
+            if p["market"] == "gg" and ODDS_MIN <= p["odds"] <= ODDS_MAX
+        ]
+        if gg_day:
+            gg_picks = gg_day
+            used_date = date_str
+            day_label = ["oggi", "domani", "dopodomani"][day_offset]
+            break
+        if date_req:
+            break
+
+    if not gg_picks:
+        return jsonify({
+            "error": f"Nessuna partita Goal/Goal con quota {ODDS_MIN}–{ODDS_MAX} trovata nei prossimi 3 giorni.",
+            "suggerimento": f"Prova ad allargare il range con odds_min e odds_max"
+        }), 404
+
+    # dedup
+    seen, unique_gg = set(), []
+    for p in gg_picks:
+        k = p["match"]
+        if k not in seen: seen.add(k); unique_gg.append(p)
+
+    # ordina per probabilità decrescente
+    unique_gg.sort(key=lambda p: p["prob"], reverse=True)
+
+    # -- Costruisci TUTTE le multiple da esattamente 3 pick --
+    multiples = []
+    if len(unique_gg) >= 3:
+        top_pool = unique_gg[:15]  # considera le prime 15 per non esplodere le combinazioni
+        for combo in itertools.combinations(top_pool, 3):
+            # una sola partita per combo
+            if len({p["match"] for p in combo}) != 3: continue
+            total_odds = round(math.prod(p["odds"] for p in combo), 2)
+            combo_prob = round(math.prod(p["prob"] for p in combo) * 100, 1)
+            combo_prob_raw = math.prod(p["prob"] for p in combo)
+            edge_sum   = round(sum(p["edge"] for p in combo), 3)
+            kf         = kelly_fraction(combo_prob_raw, total_odds)
+            multiples.append({
+                "picks":        [{"match": p["match"], "league": p["league"],
+                                  "odds": p["odds"], "prob": f"{round(p['prob']*100,1)}%",
+                                  "edge": p["edge"], "commence_time": p.get("commence_time")}
+                                 for p in combo],
+                "total_odds":   total_odds,
+                "combo_prob":   f"{combo_prob}%",
+                "combo_prob_raw": combo_prob_raw,
+                "edge_sum":     edge_sum,
+                "kelly_fraction": kf,
+                "kelly_pct":    f"{round(kf*100,1)}%",
+                "value":        edge_sum > 0,
+            })
+        # ordina per probabilità combinata decrescente
+        multiples.sort(key=lambda m: m["combo_prob_raw"], reverse=True)
+        # rimuovi combo_prob_raw dall'output finale
+        for m in multiples: m.pop("combo_prob_raw", None)
+
+    # formatta singole output
+    singole = []
+    for rank, p in enumerate(unique_gg, start=1):
+        kf = p.get("kelly_fraction", 0.0)
+        singole.append({
+            "rank":           rank,
+            "match":          p["match"],
+            "league":         p["league"],
+            "odds":           p["odds"],
+            "probability":    f"{round(p['prob']*100,1)}%",
+            "prob_raw":       p["prob"],
+            "edge":           p["edge"],
+            "edge_pct":       f"{round(p['edge']*100,1)}%",
+            "kelly_fraction": kf,
+            "kelly_pct":      f"{round(kf*100,1)}%",
+            "data_quality":   p.get("data_quality"),
+            "commence_time":  p.get("commence_time"),
+        })
+
+    return jsonify({
+        "day":              day_label,
+        "date":             used_date,
+        "odds_range":       f"{ODDS_MIN}–{ODDS_MAX}",
+        "singole_trovate":  len(singole),
+        "multiple_trovate": len(multiples),
+        "singole":          singole,
+        "multiple":         multiples,
+    })
+
+
 @app.route("/top-value")
 @timed
 def top_value():
