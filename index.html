@@ -126,6 +126,7 @@ input:focus,select:focus{outline:none;border-color:var(--g)}
   <div class="err-box" id="errBox"><strong>⚠️</strong> <span id="errMsg"></span></div>
 
   <div id="results" style="display:none">
+    <div id="statsBar" style="font-size:0.75rem;color:var(--mu);text-align:center;margin-bottom:10px;padding:8px;background:var(--c1);border-radius:10px;border:1px solid var(--br)"></div>
     <div class="summary" id="summaryBar"></div>
     <div class="tabs">
       <div class="tab active" id="tabSingole" onclick="showTab('singole')">⚽ Singole <span id="cntS"></span></div>
@@ -187,6 +188,13 @@ async function loadGiornata() {
 
     const singole  = data.singole  || [];
     const multiple = data.multiple || [];
+
+    // Stats analisi
+    const st = data.stats || {};
+    document.getElementById('statsBar').innerHTML = `
+      Analizzate <strong>${st.partite_analizzate||0}</strong> partite
+      · <strong>${st.con_quota_gg||0}</strong> con quota GG
+      · <strong style="color:var(--g)">${st.value_trovate||0} VALUE</strong> trovate`;
 
     // Summary
     document.getElementById('summaryBar').innerHTML = `
