@@ -106,8 +106,8 @@ body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-he
   </button>
 
   <button onclick="loadTopGoals()" id="topBtn" class="top-btn">
-    🎯 Top 20 Partite Over 2.5 / GG 
-    <span style="font-size:0.8rem;opacity:0.8">(quota 1.80–2.20)</span>
+    ⚽ Top 10 Goal/Goal
+    <span style="font-size:0.8rem;opacity:0.8">(quota 2.00–2.20)</span>
   </button>
 
   <div class="err-box" id="errBox"><strong>⚠️</strong> <span id="errMsg"></span></div>
@@ -259,7 +259,7 @@ async function loadTopGoals() {
   document.getElementById('topGoalsResults').innerHTML = '';
 
   try {
-    const res = await fetch(`${bu}/top-goals?odds_min=1.80&odds_max=2.20&top=20`);
+    const res = await fetch(`${bu}/top-goals?odds_min=2.00&odds_max=2.20&top=10`);
     const data = await res.json();
 
     if (data.error) {
@@ -276,7 +276,7 @@ async function loadTopGoals() {
     let html = `
       <div class="result-card">
         <div style="font-size:1.1rem;font-weight:700;margin-bottom:18px">
-          🎯 Top ${picks.length} Partite • ${data.day || 'Oggi'}
+          ⚽ Top ${picks.length} Goal/Goal • ${data.day || 'Prossimi giorni'}
         </div>`;
 
     picks.forEach(p => {
