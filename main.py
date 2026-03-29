@@ -327,37 +327,64 @@ def get_team_stats(team_id, t_id, s_id):
             conn.close()
     return rec
 
-def get_event_odds(event_id):
-    data = sofa_get(f"https://api.sofascore.com/api/v1/event/{event_id}/odds/1/all")
-    if not data: return {}
-    odds = {}
-    for mkt in data.get("markets", []):
-        mkt_lc = (mkt.get("marketName", "") or mkt.get("name", "")).strip().lower()
-        is_o25 = "2.5" in mkt_lc
-        is_o15 = "1.5" in mkt_lc and "2.5" not in mkt_lc
-        for ch in mkt.get("choices", []):
-            name = ch.get("name", "")
-            frac = ch.get("fractionalValue") or ch.get("initialFractionalValue")
-            try:
-                if frac and "/" in str(frac):
-                    n, d = str(frac).split("/")
-                    dec = round(int(n) / int(d) + 1, 3)
-                    if dec > 1:
-                        odds[name] = dec
-                        nl = name.strip().lower()
-                        # Over 2.5 â€” solo se il mercato contiene "2.5" OPPURE il nome e' esplicito
-                        if nl in ("over 2.5", "over2.5") or (is_o25 and nl == "over"):
-                            odds["Over 2.5"] = dec
-                        # Over 1.5 â€” solo se mercato 1.5 OPPURE nome esplicito
-                        if nl in ("over 1.5", "over1.5") or (is_o15 and nl == "over"):
-                            odds["Over 1.5"] = dec
-                        # GG / BTTS
-                        if nl in ("yes", "gg"):
-                            odds["Yes"] = dec
-            except Exception:
-                pass
-    return odds
+def _parse_decimal(ch):
+    """Estrae la quota decimale da un choice SofaScore, supportando tutti i formati."""
+    dv = ch.get("decimalValue") or ch.get("currentDecimalValue")
+    if dv:
+        try:
+            v = round(float(dv), 3)
+            if v > 1.01: return v
+        except Exception: pass
+    frac = ch.get("fractionalValue") or ch.get("initialFractionalValue")
+    if frac and "/" in str(frac):
+        try:
+            n, d = str(frac).split("/")
+            v = round(int(n) / int(d) + 1, 3)
+            if v > 1.01: return v
+        except Exception: pass
+    av = ch.get("americanValue")
+    if av:
+        try:
+            av = float(av)
+            v = round((av / 100 + 1) if av > 0 else (100 / abs(av) + 1), 3)
+            if v > 1.01: return v
+        except Exception: pass
+    return None
 
+def get_event_odds(event_id):
+    for odds_url in [
+        f"https://api.sofascore.com/api/v1/event/{event_id}/odds/1/all",
+        f"https://api.sofascore.com/api/v1/event/{event_id}/odds/1",
+    ]:
+        data = sofa_get(odds_url)
+        if data: break
+    if not data: return {}
+
+    odds = {}
+    GG_NAMES = {"yes", "gg", "btts yes", "entrambe segnano", "beide teams scoren",
+                "both teams to score", "ambas marcan", "les deux equipes marquent",
+                "both to score", "bts", "si", "s\xec"}
+
+    for mkt in data.get("markets", []):
+        mkt_name = (mkt.get("marketName") or mkt.get("name") or "").strip().lower()
+        is_o25 = "2.5" in mkt_name
+        is_o15 = "1.5" in mkt_name and not is_o25
+        is_gg  = any(k in mkt_name for k in ("both teams", "btts", "entrambe", "ambas marcan", "gg"))
+
+        for ch in mkt.get("choices", []):
+            nl  = (ch.get("name") or "").strip().lower()
+            dec = _parse_decimal(ch)
+            if not dec: continue
+
+            if nl in ("over 2.5", "over2.5") or (is_o25 and nl in ("over", "si", "yes")):
+                odds["Over 2.5"] = dec
+            if nl in ("over 1.5", "over1.5") or (is_o15 and nl in ("over", "si", "yes")):
+                odds["Over 1.5"] = dec
+            if nl in GG_NAMES or (is_gg and nl in ("yes", "si", "ja", "oui")):
+                odds["Yes"] = dec
+
+    log.debug(f"[odds] event {event_id}: GG={odds.get('Yes')}, O25={odds.get('Over 2.5')}, O15={odds.get('Over 1.5')}")
+    return odds
 def get_today_events(date_str):
     with db_lock:
         conn = get_db()
