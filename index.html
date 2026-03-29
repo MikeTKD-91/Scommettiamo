@@ -7,88 +7,68 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
-  --g:#00e676;--gd:#00c853;--gb:rgba(0,230,118,.12);
+  --g:#00e676;--gb:rgba(0,230,118,.12);
   --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
   --br:rgba(255,255,255,.09);
   --tx:#f1f5ff;--mu:#6b7fa3;--ye:#fbbf24;
   --pu:#a78bfa;--pub:rgba(167,139,250,.12);
+  --re:#fb7185;--reb:rgba(251,113,133,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;line-height:1.4}
-.page{padding:20px 16px 100px;max-width:460px;margin:0 auto}
-
+.page{padding:20px 16px 120px;max-width:460px;margin:0 auto}
 .hdr{text-align:center;padding:16px 0 20px}
 .hdr-chip{background:var(--gb);color:var(--g);font-size:0.7rem;font-weight:600;padding:6px 14px;border-radius:99px;display:inline-flex;align-items:center;gap:6px}
 .live-dot{width:7px;height:7px;background:var(--g);border-radius:50%;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .hdr-title{font-size:2.6rem;font-weight:900;letter-spacing:-1.5px}
 .hdr-title span{background:linear-gradient(135deg,#fff,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-
 .card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:18px;margin-bottom:16px}
 .field-label{color:var(--mu);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block}
-input[type=text],input[type=number],select{
-  width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);
-  background:var(--c2);color:var(--tx);font-size:0.9rem;font-family:'Outfit',sans-serif;
-}
-input:focus,select:focus{outline:none;border-color:var(--g)}
-
-.main-btn{
-  width:100%;background:linear-gradient(135deg,var(--g),#00b8d9);
-  border:none;border-radius:16px;padding:18px;
-  color:#070b12;font-weight:800;font-size:1.1rem;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:opacity .2s;margin-bottom:16px;
-}
+input[type=text],input[type=number]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem;font-family:'Outfit',sans-serif}
+input:focus{outline:none;border-color:var(--g)}
+.main-btn{width:100%;background:linear-gradient(135deg,var(--g),#00b8d9);border:none;border-radius:16px;padding:18px;color:#070b12;font-weight:800;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .2s;margin-bottom:16px}
 .main-btn:disabled{opacity:0.5;cursor:not-allowed}
-.main-btn:active{opacity:0.85}
-
-.tabs{display:flex;gap:8px;margin-bottom:16px}
-.tab{flex:1;padding:10px;border-radius:12px;border:2px solid var(--br);background:var(--c2);color:var(--mu);font-weight:700;font-size:0.85rem;cursor:pointer;text-align:center;transition:all .2s}
-.tab.active{border-color:var(--g);color:var(--g);background:var(--gb)}
-.tab.active.pu{border-color:var(--pu);color:var(--pu);background:var(--pub)}
-
-.section{display:none}.section.show{display:block}
-
-.err-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:14px;padding:14px;color:#fb7185;display:none;margin-bottom:12px}
+.err-box{background:var(--reb);border:1px solid rgba(251,113,133,.3);border-radius:14px;padding:14px;color:var(--re);display:none;margin-bottom:12px}
 .err-box.show{display:block}
-
-.summary{background:var(--c1);border:1px solid var(--br);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
-.summary-num{font-size:1.4rem;font-weight:900;color:var(--g);text-align:center}
-.summary-num.pu{color:var(--pu)}
-.summary-lbl{font-size:0.68rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:center}
-
-.pick{background:var(--c2);border-radius:14px;padding:16px;margin-bottom:10px;border-left:4px solid var(--g)}
-.pick-league{font-size:0.75rem;color:var(--mu);font-weight:600;margin-bottom:4px}
-.pick-match{font-size:0.98rem;font-weight:700;margin-bottom:8px}
-.pick-row{display:flex;justify-content:space-between;align-items:center}
-.pick-odd{font-size:1.4rem;font-weight:900;color:var(--ye)}
-.pick-prob{font-size:1rem;font-weight:700;color:var(--g)}
-.pick-time{color:var(--mu);font-size:0.72rem}
-.pick-kelly{font-size:0.75rem;color:var(--pu);font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.kbadge{background:var(--pub);color:var(--pu);border-radius:6px;padding:2px 7px;font-size:0.7rem}
-.kstake{color:#f1f5ff;font-weight:700}
-.edge-badge{font-size:0.68rem;padding:2px 7px;border-radius:6px;font-weight:700;margin-left:6px}
-.edge-pos{background:rgba(0,230,118,.15);color:var(--g)}
-.edge-neg{background:rgba(107,127,163,.12);color:var(--mu)}
-.bar{height:5px;background:rgba(255,255,255,.08);border-radius:999px;margin-top:10px;overflow:hidden}
-.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8);transition:width .8s}
-
-.multi{background:var(--c2);border-radius:14px;padding:16px;margin-bottom:10px;border-left:4px solid var(--pu)}
-.multi-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.multi-odds{font-size:1.6rem;font-weight:900;color:var(--ye)}
-.multi-prob{font-size:0.9rem;font-weight:700;color:var(--pu)}
-.multi-pick{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
-.multi-pick:last-child{border-bottom:none}
-.multi-pick-name{font-size:0.85rem;font-weight:600}
-.multi-pick-sub{font-size:0.72rem;color:var(--mu)}
-.multi-pick-odd{font-size:0.85rem;font-weight:700;color:var(--ye)}
-.multi-kelly{font-size:0.75rem;color:var(--pu);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.value-tag{background:var(--pub);color:var(--pu);font-size:0.68rem;padding:2px 8px;border-radius:6px;font-weight:700}
+.stats-bar{font-size:0.75rem;color:var(--mu);text-align:center;padding:8px 12px;background:var(--c1);border-radius:10px;border:1px solid var(--br);margin-bottom:14px;display:none}
+.pick{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:16px;margin-bottom:12px;transition:border-color .3s}
+.pick.value{border-color:rgba(0,230,118,.5)}
+.pick.novalue{border-color:rgba(107,127,163,.25)}
+.pick-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.pick-league{font-size:0.72rem;color:var(--mu);font-weight:600}
+.pick-time{font-size:0.72rem;color:var(--mu)}
+.pick-match{font-size:1rem;font-weight:700;margin-bottom:4px}
+.pick-prob{font-size:0.85rem;color:var(--g);font-weight:600;margin-bottom:12px}
+.odds-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.odds-label{font-size:0.75rem;color:var(--mu);font-weight:600;white-space:nowrap}
+.odds-input{flex:1;padding:10px 12px;border-radius:10px;border:2px solid var(--br);background:var(--c2);color:var(--ye);font-size:1.1rem;font-weight:800;font-family:'Outfit',sans-serif;text-align:center;transition:border-color .2s}
+.odds-input:focus{outline:none;border-color:var(--ye)}
+.odds-input.filled{border-color:rgba(251,191,36,.5)}
+.result-box{display:none;border-radius:10px;padding:12px;margin-top:4px}
+.result-box.show{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.result-box.yes{background:var(--gb)}
+.result-box.no{background:rgba(107,127,163,.08)}
+.res-item{text-align:center;min-width:60px}
+.res-val{font-size:1rem;font-weight:800}
+.res-lbl{font-size:0.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.vbadge{font-size:0.72rem;font-weight:700;padding:4px 12px;border-radius:20px}
+.vbadge.yes{background:var(--gb);color:var(--g)}
+.vbadge.no{background:rgba(107,127,163,.12);color:var(--mu)}
+.qbadge{font-size:0.65rem;padding:2px 7px;border-radius:5px;font-weight:700}
+.q-high{background:rgba(0,230,118,.15);color:var(--g)}
+.q-medium{background:rgba(251,191,36,.12);color:var(--ye)}
+.q-low{background:rgba(107,127,163,.12);color:var(--mu)}
+.bar{height:4px;background:rgba(255,255,255,.07);border-radius:999px;margin-top:10px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8)}
+.sticky{position:fixed;bottom:0;left:0;right:0;background:rgba(7,11,18,.96);backdrop-filter:blur(12px);border-top:1px solid var(--br);padding:12px 20px;display:none}
+.sticky.show{display:flex;justify-content:space-around;align-items:center;max-width:460px;margin:0 auto}
+.sum-val{font-size:1.1rem;font-weight:900;text-align:center}
+.sum-lbl{font-size:0.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;text-align:center}
 </style>
 </head>
 <body>
 <div class="page">
-
   <div class="hdr">
     <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
     <h1 class="hdr-title"><span>Scommettiamo</span></h1>
@@ -101,200 +81,174 @@ input:focus,select:focus{outline:none;border-color:var(--g)}
     <span id="urlSaved" style="display:none;color:var(--g);font-size:0.75rem;margin-top:6px">✓ URL salvato</span>
   </div>
 
-  <div class="card" style="display:flex;gap:12px">
-    <div style="flex:1">
-      <span class="field-label">💰 Bankroll (€)</span>
-      <input type="number" id="bankroll" placeholder="es. 80" min="1" step="1"
-        oninput="localStorage.setItem('bankroll',this.value)">
-    </div>
-    <div style="flex:1">
-      <span class="field-label">📊 Range quote GG</span>
-      <select id="oddsRange" onchange="localStorage.setItem('oddsRange',this.value)">
-        <option value="1.60-1.90">1.60 – 1.90</option>
-        <option value="1.70-2.00" selected>1.70 – 2.00</option>
-        <option value="1.80-2.10">1.80 – 2.10</option>
-        <option value="1.90-2.20">1.90 – 2.20</option>
-        <option value="2.00-2.30">2.00 – 2.30</option>
-      </select>
-    </div>
+  <div class="card">
+    <span class="field-label">💰 Bankroll (€)</span>
+    <input type="number" id="bankroll" placeholder="es. 80" min="1" step="1">
+    <p style="color:var(--mu);font-size:0.72rem;margin-top:6px">
+      Il modello trova le partite migliori · Tu inserisci la quota GG dal tuo bookmaker · Calcola edge e Kelly in automatico
+    </p>
   </div>
 
-  <button class="main-btn" id="mainBtn" onclick="loadGiornata()">
-    ⚽ Analizza la giornata
-  </button>
+  <button class="main-btn" id="mainBtn" onclick="loadGiornata()">⚽ Analizza la giornata</button>
 
   <div class="err-box" id="errBox"><strong>⚠️</strong> <span id="errMsg"></span></div>
-
-  <div id="results" style="display:none">
-    <div id="statsBar" style="font-size:0.75rem;color:var(--mu);text-align:center;margin-bottom:10px;padding:8px;background:var(--c1);border-radius:10px;border:1px solid var(--br)"></div>
-    <div class="summary" id="summaryBar"></div>
-    <div class="tabs">
-      <div class="tab active" id="tabSingole" onclick="showTab('singole')">⚽ Singole <span id="cntS"></span></div>
-      <div class="tab pu" id="tabMultiple" onclick="showTab('multiple')">🎯 Multiple x3 <span id="cntM"></span></div>
-    </div>
-    <div class="section show" id="secSingole"></div>
-    <div class="section" id="secMultiple"></div>
-  </div>
-
+  <div class="stats-bar" id="statsBar"></div>
+  <div id="picks"></div>
 </div>
+
+<div class="sticky" id="sticky">
+  <div><div class="sum-val" id="sumV" style="color:var(--g)">0</div><div class="sum-lbl">VALUE picks</div></div>
+  <div><div class="sum-val" id="sumS" style="color:var(--ye)">€0</div><div class="sum-lbl">Puntata totale</div></div>
+  <div><div class="sum-val" id="sumQ" style="color:var(--pu)">0/0</div><div class="sum-lbl">Quote inserite</div></div>
+</div>
+
 <script>
+let picks = [], userOdds = {}, bankroll = 0;
+
 window.onload = () => {
   const url = localStorage.getItem('backendUrl');
   if (url) { document.getElementById('backendUrl').value = url; document.getElementById('urlSaved').style.display='block'; }
   const bk = localStorage.getItem('bankroll');
-  if (bk) document.getElementById('bankroll').value = bk;
-  const or = localStorage.getItem('oddsRange');
-  if (or) document.getElementById('oddsRange').value = or;
+  if (bk) { document.getElementById('bankroll').value = bk; bankroll = parseFloat(bk)||0; }
+  document.getElementById('bankroll').addEventListener('input', function(){
+    bankroll = parseFloat(this.value)||0;
+    localStorage.setItem('bankroll', this.value);
+    picks.forEach(p => updateResult(p.match));
+    updateSticky();
+  });
 };
 
-function saveUrl() {
-  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
-  if (url) { localStorage.setItem('backendUrl', url); document.getElementById('urlSaved').style.display='block'; }
+function saveUrl(){
+  const u = document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  if(u){ localStorage.setItem('backendUrl',u); document.getElementById('urlSaved').style.display='block'; }
 }
-function showErr(msg) { document.getElementById('errBox').classList.add('show'); document.getElementById('errMsg').textContent = msg; }
-function hideErr()    { document.getElementById('errBox').classList.remove('show'); }
+function showErr(m){ const b=document.getElementById('errBox'); b.classList.add('show'); b.querySelector('span').textContent=m; }
+function hideErr(){ document.getElementById('errBox').classList.remove('show'); }
+function fmtTime(iso){ if(!iso) return ''; return new Date(iso).toLocaleString('it-IT',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function safeId(s){ return s.replace(/[^a-z0-9]/gi,'_'); }
 
-function fmtTime(iso) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
-}
-
-function showTab(tab) {
-  document.getElementById('secSingole').classList.toggle('show', tab === 'singole');
-  document.getElementById('secMultiple').classList.toggle('show', tab === 'multiple');
-  document.getElementById('tabSingole').classList.toggle('active', tab === 'singole');
-  document.getElementById('tabMultiple').classList.toggle('active', tab === 'multiple');
+function onOddsInput(match, el){
+  const v = parseFloat(el.value);
+  if(v > 1.01){ userOdds[match]=v; el.classList.add('filled'); }
+  else{ delete userOdds[match]; el.classList.remove('filled'); }
+  updateResult(match);
+  updateSticky();
 }
 
-async function loadGiornata() {
+function updateResult(match){
+  const p   = picks.find(x => x.match === match);
+  const box = document.getElementById('res_' + safeId(match));
+  const card= document.getElementById('card_' + safeId(match));
+  if(!p || !box) return;
+  const odds = userOdds[match];
+  if(!odds){ box.className='result-box'; if(card) card.className='pick'; return; }
+
+  const prob  = p.prob_gg;
+  const edge  = prob - 1/odds;
+  const b     = odds - 1;
+  const kf    = Math.max((b*prob - (1-prob))/b, 0) * 0.25;
+  const stake = bankroll > 0 ? (kf*bankroll).toFixed(2) : null;
+  const isVal = edge > 0;
+
+  box.className = `result-box show ${isVal?'yes':'no'}`;
+  box.innerHTML = `
+    <div class="res-item">
+      <div class="res-val" style="color:${isVal?'var(--g)':'var(--re)'}">${isVal?'+':''}${(edge*100).toFixed(1)}%</div>
+      <div class="res-lbl">Edge</div>
+    </div>
+    <div class="res-item">
+      <span class="vbadge ${isVal?'yes':'no'}">${isVal?'✓ VALUE':'✗ No edge'}</span>
+    </div>
+    <div class="res-item">
+      <div class="res-val" style="color:var(--pu)">${(kf*100).toFixed(1)}%</div>
+      <div class="res-lbl">Kelly ¼</div>
+    </div>
+    ${stake&&isVal?`<div class="res-item"><div class="res-val" style="color:var(--ye)">€${stake}</div><div class="res-lbl">Puntata</div></div>`:''}
+  `;
+  if(card) card.className = `pick ${isVal?'value':'novalue'}`;
+}
+
+function updateSticky(){
+  let val=0, tot=0, ins=0;
+  picks.forEach(p => {
+    const odds = userOdds[p.match];
+    if(!odds) return;
+    ins++;
+    const edge = p.prob_gg - 1/odds;
+    if(edge>0){
+      val++;
+      const b=odds-1, kf=Math.max((b*p.prob_gg-(1-p.prob_gg))/b,0)*0.25;
+      tot += kf*bankroll;
+    }
+  });
+  document.getElementById('sumV').textContent = val;
+  document.getElementById('sumS').textContent = `€${tot.toFixed(2)}`;
+  document.getElementById('sumQ').textContent = `${ins}/${picks.length}`;
+  document.getElementById('sticky').className = ins>0 ? 'sticky show' : 'sticky';
+}
+
+async function loadGiornata(){
   hideErr();
   const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
-  if (!bu) { showErr("Inserisci l'URL del backend Railway"); return; }
+  if(!bu){ showErr("Inserisci l'URL del backend Railway"); return; }
   saveUrl();
-
-  const range = document.getElementById('oddsRange').value;
-  const [oMin, oMax] = range.split('-');
-  const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
+  bankroll = parseFloat(document.getElementById('bankroll').value)||0;
 
   const btn = document.getElementById('mainBtn');
-  btn.disabled = true;
-  btn.innerHTML = '⏳ Analisi in corso...';
-  document.getElementById('results').style.display = 'none';
+  btn.disabled=true; btn.innerHTML='⏳ Analisi in corso...';
+  document.getElementById('picks').innerHTML='';
+  document.getElementById('statsBar').style.display='none';
+  userOdds={};
 
-  try {
-    const res  = await fetch(`${bu}/giornata?odds_min=${oMin}&odds_max=${oMax}`);
+  try{
+    const res  = await fetch(`${bu}/giornata?top=10`);
     const data = await res.json();
-    if (data.error) { showErr(data.error + (data.suggerimento ? ' — ' + data.suggerimento : '')); return; }
+    if(data.error){ showErr(data.error); return; }
 
-    const singole  = data.singole  || [];
-    const multiple = data.multiple || [];
+    picks = data.picks || [];
 
-    // Stats analisi
-    const st = data.stats || {};
-    document.getElementById('statsBar').innerHTML = `
-      Analizzate <strong>${st.partite_analizzate||0}</strong> partite
-      · <strong>${st.con_quota_gg||0}</strong> con quota GG
-      · <strong style="color:var(--g)">${st.value_trovate||0} VALUE</strong> trovate`;
+    const sb = document.getElementById('statsBar');
+    sb.style.display='block';
+    sb.innerHTML=`Analizzate <strong>${data.partite_analizzate||0}</strong> partite · <strong>${data.partite_con_stats||0}</strong> con dati · Top <strong>${picks.length}</strong> per prob GG · <strong style="color:var(--mu)">${data.day||'oggi'} ${data.date||''}</strong>`;
 
-    // Summary
-    document.getElementById('summaryBar').innerHTML = `
-      <div><div class="summary-num">${singole.length}</div><div class="summary-lbl">Singole GG</div></div>
-      <div><div class="summary-num pu">${multiple.length}</div><div class="summary-lbl">Multiple x3</div></div>
-      <div><div class="summary-num" style="color:var(--ye);font-size:1rem">${data.day||'oggi'}</div><div class="summary-lbl">${data.date||''}</div></div>`;
-
-    document.getElementById('cntS').textContent = `(${singole.length})`;
-    document.getElementById('cntM').textContent = `(${multiple.length})`;
-
-    // -- SINGOLE --
-    let sHtml = '';
-    if (!singole.length) {
-      sHtml = `<div class="err-box show">Nessuna singola GG nel range ${range.replace('-',' – ')}</div>`;
-    } else {
-      singole.forEach(p => {
-        const prob     = parseFloat(p.probability);
-        const kf       = p.kelly_fraction || 0;
-        const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
-        const isPos    = (p.edge || 0) > 0;
-        const qIcon    = p.data_quality === 'high' ? '🟢' : p.data_quality === 'medium' ? '🟡' : '🔴';
-        sHtml += `
-          <div class="pick">
-            <div class="pick-league">${p.league} · ${fmtTime(p.commence_time)}</div>
-            <div class="pick-match">${p.match}</div>
-            <div class="pick-row">
-              <div>
-                <span class="pick-odd">@${p.odds}</span>
-                <span class="edge-badge ${isPos?'edge-pos':'edge-neg'}">${isPos?'+':''}${p.edge_pct}</span>
-              </div>
-              <div style="text-align:right">
-                <div class="pick-prob">${p.probability}</div>
-                <div class="pick-time">${qIcon} ${p.data_quality}</div>
-              </div>
-            </div>
-            ${kf > 0 ? `
-            <div class="pick-kelly">
-              <span class="kbadge">Kelly ¼</span>
-              <span>${p.kelly_pct} bankroll</span>
-              ${kellyEur ? `<span class="kstake">→ €${kellyEur}</span>` : ''}
-            </div>` : `
-            <div class="pick-kelly" style="color:var(--mu)">
-              <span class="kbadge" style="background:rgba(107,127,163,.1);color:var(--mu)">No edge</span>
-              <span>Puntata sconsigliata</span>
-            </div>`}
-            <div class="bar"><div class="bar-fill" style="width:${prob}%"></div></div>
-          </div>`;
-      });
+    if(!picks.length){
+      document.getElementById('picks').innerHTML='<div class="err-box show">Nessuna partita con dati statistici trovata oggi. Riprova domani mattina.</div>';
+      return;
     }
-    document.getElementById('secSingole').innerHTML = sHtml;
 
-    // -- MULTIPLE --
-    let mHtml = '';
-    if (!multiple.length) {
-      mHtml = `<div class="err-box show">Non abbastanza partite per costruire multiple da 3.</div>`;
-    } else {
-      multiple.forEach((m, i) => {
-        const kf       = m.kelly_fraction || 0;
-        const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
-        mHtml += `
-          <div class="multi">
-            <div class="multi-header">
-              <div>
-                <span class="multi-odds">@${m.total_odds}</span>
-                ${m.value ? `<span class="value-tag" style="margin-left:8px">VALUE</span>` : ''}
-              </div>
-              <div style="text-align:right">
-                <div class="multi-prob">${m.combo_prob}</div>
-                <div style="font-size:0.7rem;color:var(--mu)">#${i+1} di ${multiple.length}</div>
-              </div>
+    let html='';
+    picks.forEach((p,i)=>{
+      const sid = safeId(p.match);
+      const qc  = p.data_quality==='high'?'q-high':p.data_quality==='medium'?'q-medium':'q-low';
+      const ql  = p.data_quality==='high'?'🟢 Alta':p.data_quality==='medium'?'🟡 Media':'🔴 Bassa';
+      const pct = Math.round(p.prob_gg*100);
+      const safeMatch = p.match.replace(/'/g,"\\'");
+      html+=`
+        <div class="pick" id="card_${sid}">
+          <div class="pick-top">
+            <div>
+              <div class="pick-league">${p.league}</div>
+              <div class="pick-time">${fmtTime(p.commence_time)}</div>
             </div>
-            ${m.picks.map(p => `
-              <div class="multi-pick">
-                <div>
-                  <div class="multi-pick-name">${p.match}</div>
-                  <div class="multi-pick-sub">${p.league} · ${fmtTime(p.commence_time)}</div>
-                </div>
-                <span class="multi-pick-odd">@${p.odds}</span>
-              </div>`).join('')}
-            <div class="multi-kelly">
-              <span class="kbadge">Kelly ¼</span>
-              <span>${m.kelly_pct} bankroll</span>
-              ${kellyEur ? `<span class="kstake">→ €${kellyEur}</span>` : ''}
-            </div>
-          </div>`;
-      });
-      mHtml += `<div style="color:var(--mu);font-size:0.72rem;text-align:center;padding:8px">
-        Le multiple sono ordinate per probabilità combinata decrescente. La #1 è la più probabile.
-      </div>`;
-    }
-    document.getElementById('secMultiple').innerHTML = mHtml;
+            <span class="qbadge ${qc}">${ql}</span>
+          </div>
+          <div class="pick-match">${p.match}</div>
+          <div class="pick-prob">GG ${p.prob_gg_pct} · Gol attesi: ${p.exp_goals}</div>
+          <div class="odds-row">
+            <span class="odds-label">Quota GG sul tuo bookmaker:</span>
+            <input type="number" class="odds-input" placeholder="1.95" min="1.01" step="0.05"
+              oninput="onOddsInput('${safeMatch}', this)">
+          </div>
+          <div class="result-box" id="res_${sid}"></div>
+          <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+    });
+    document.getElementById('picks').innerHTML=html;
 
-    document.getElementById('results').style.display = 'block';
-    showTab('singole');
-
-  } catch(e) {
-    showErr("Errore di connessione: " + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '⚽ Analizza la giornata';
+  }catch(e){
+    showErr("Errore di connessione: "+e.message);
+  }finally{
+    btn.disabled=false; btn.innerHTML='⚽ Analizza la giornata';
   }
 }
 </script>
