@@ -11,70 +11,79 @@
   --bg:#070b12;--c1:#0d1421;--c2:#0a1019;
   --br:rgba(255,255,255,.09);
   --tx:#f1f5ff;--mu:#6b7fa3;--ye:#fbbf24;
+  --pu:#a78bfa;--pub:rgba(167,139,250,.12);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;line-height:1.4}
-
 .page{padding:20px 16px 100px;max-width:460px;margin:0 auto}
 
-/* HEADER */
 .hdr{text-align:center;padding:16px 0 20px}
 .hdr-chip{background:var(--gb);color:var(--g);font-size:0.7rem;font-weight:600;padding:6px 14px;border-radius:99px;display:inline-flex;align-items:center;gap:6px}
 .live-dot{width:7px;height:7px;background:var(--g);border-radius:50%;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-
 .hdr-title{font-size:2.6rem;font-weight:900;letter-spacing:-1.5px}
 .hdr-title span{background:linear-gradient(135deg,#fff,var(--g));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 
-/* CONFIG */
-.card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:18px;margin-bottom:20px}
-.field-label{color:var(--mu);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-
-/* PULSANTE */
-.top-btn{
-  width:100%;background:var(--c1);border:2px solid var(--br);border-radius:16px;
-  padding:18px;color:var(--tx);font-weight:700;font-size:1.05rem;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
-  transition:all .3s;
+.card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:18px;margin-bottom:16px}
+.field-label{color:var(--mu);font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block}
+input[type=text],input[type=number],select{
+  width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);
+  background:var(--c2);color:var(--tx);font-size:0.9rem;font-family:'Outfit',sans-serif;
 }
-.top-btn:hover{border-color:var(--g);color:var(--g)}
+input:focus,select:focus{outline:none;border-color:var(--g)}
 
-/* ERROR */
-.err-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:14px;padding:14px;color:#fb7185;display:none}
+.main-btn{
+  width:100%;background:linear-gradient(135deg,var(--g),#00b8d9);
+  border:none;border-radius:16px;padding:18px;
+  color:#070b12;font-weight:800;font-size:1.1rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:opacity .2s;margin-bottom:16px;
+}
+.main-btn:disabled{opacity:0.5;cursor:not-allowed}
+.main-btn:active{opacity:0.85}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab{flex:1;padding:10px;border-radius:12px;border:2px solid var(--br);background:var(--c2);color:var(--mu);font-weight:700;font-size:0.85rem;cursor:pointer;text-align:center;transition:all .2s}
+.tab.active{border-color:var(--g);color:var(--g);background:var(--gb)}
+.tab.active.pu{border-color:var(--pu);color:var(--pu);background:var(--pub)}
+
+.section{display:none}.section.show{display:block}
+
+.err-box{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);border-radius:14px;padding:14px;color:#fb7185;display:none;margin-bottom:12px}
 .err-box.show{display:block}
 
-/* RISULTATI */
-.result-card{background:var(--c1);border:1px solid var(--br);border-radius:16px;padding:20px}
-.pick{
-  background:var(--c2);border-radius:14px;padding:16px;margin-bottom:12px;
-  border-left:5px solid var(--g);
-}
-.pick-league{font-size:0.82rem;color:var(--mu);font-weight:600;margin-bottom:6px}
-.pick-match{font-size:1rem;font-weight:700;margin-bottom:10px}
-.pick-market{font-size:0.95rem;font-weight:600;color:var(--g);margin-bottom:8px}
-.pick-info{display:flex;justify-content:space-between;align-items:flex-end}
-.pick-odd{font-size:1.45rem;font-weight:900;color:var(--ye)}
-.pick-prob{font-size:1.1rem;font-weight:700;color:var(--g)}
-.pick-time{color:var(--mu);font-size:0.78rem}
-.bar-container{height:7px;background:rgba(255,255,255,0.1);border-radius:999px;margin-top:12px;overflow:hidden}
-.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8);transition:width .8s ease}
-.pick-kelly{font-size:0.78rem;color:#a78bfa;font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px}
-.pick-kelly span.kelly-badge{background:rgba(167,139,250,0.15);color:#a78bfa;border-radius:6px;padding:2px 8px;font-size:0.72rem}
-.pick-kelly span.kelly-stake{color:#f1f5ff;font-weight:700}
+.summary{background:var(--c1);border:1px solid var(--br);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.summary-num{font-size:1.4rem;font-weight:900;color:var(--g);text-align:center}
+.summary-num.pu{color:var(--pu)}
+.summary-lbl{font-size:0.68rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.5px;text-align:center}
 
-/* TOP VALUE */
-.value-pick{
-  background:var(--c2);border-radius:14px;padding:16px;margin-bottom:12px;
-  border-left:5px solid #a78bfa;
-}
-.rank-badge{
-  display:inline-flex;align-items:center;justify-content:center;
-  width:26px;height:26px;border-radius:50%;
-  background:linear-gradient(135deg,#a78bfa,#7c3aed);
-  color:#fff;font-size:0.75rem;font-weight:800;margin-right:8px;flex-shrink:0;
-}
-.edge-bar-container{height:5px;background:rgba(167,139,250,0.15);border-radius:999px;margin-top:10px;overflow:hidden}
-.edge-bar-fill{height:100%;background:linear-gradient(90deg,#a78bfa,#38bdf8);transition:width .8s ease}
+.pick{background:var(--c2);border-radius:14px;padding:16px;margin-bottom:10px;border-left:4px solid var(--g)}
+.pick-league{font-size:0.75rem;color:var(--mu);font-weight:600;margin-bottom:4px}
+.pick-match{font-size:0.98rem;font-weight:700;margin-bottom:8px}
+.pick-row{display:flex;justify-content:space-between;align-items:center}
+.pick-odd{font-size:1.4rem;font-weight:900;color:var(--ye)}
+.pick-prob{font-size:1rem;font-weight:700;color:var(--g)}
+.pick-time{color:var(--mu);font-size:0.72rem}
+.pick-kelly{font-size:0.75rem;color:var(--pu);font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kbadge{background:var(--pub);color:var(--pu);border-radius:6px;padding:2px 7px;font-size:0.7rem}
+.kstake{color:#f1f5ff;font-weight:700}
+.edge-badge{font-size:0.68rem;padding:2px 7px;border-radius:6px;font-weight:700;margin-left:6px}
+.edge-pos{background:rgba(0,230,118,.15);color:var(--g)}
+.edge-neg{background:rgba(107,127,163,.12);color:var(--mu)}
+.bar{height:5px;background:rgba(255,255,255,.08);border-radius:999px;margin-top:10px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),#38bdf8);transition:width .8s}
+
+.multi{background:var(--c2);border-radius:14px;padding:16px;margin-bottom:10px;border-left:4px solid var(--pu)}
+.multi-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.multi-odds{font-size:1.6rem;font-weight:900;color:var(--ye)}
+.multi-prob{font-size:0.9rem;font-weight:700;color:var(--pu)}
+.multi-pick{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.multi-pick:last-child{border-bottom:none}
+.multi-pick-name{font-size:0.85rem;font-weight:600}
+.multi-pick-sub{font-size:0.72rem;color:var(--mu)}
+.multi-pick-odd{font-size:0.85rem;font-weight:700;color:var(--ye)}
+.multi-kelly{font-size:0.75rem;color:var(--pu);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.value-tag{background:var(--pub);color:var(--pu);font-size:0.68rem;padding:2px 8px;border-radius:6px;font-weight:700}
 </style>
 </head>
 <body>
@@ -83,255 +92,201 @@ body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-he
   <div class="hdr">
     <div class="hdr-chip"><span class="live-dot"></span>Live Analysis</div>
     <h1 class="hdr-title"><span>Scommettiamo</span></h1>
-    <p style="color:var(--mu);margin-top:4px">Poisson · Dixon-Coles · SofaScore</p>
+    <p style="color:var(--mu);margin-top:4px;font-size:0.85rem">Poisson · Dixon-Coles · Goal/Goal</p>
   </div>
 
   <div class="card">
     <span class="field-label">Backend Railway URL</span>
-    <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem">
-    <span id="urlSaved" style="display:none;color:#00e676;font-size:0.75rem;margin-top:8px">✓ URL salvato</span>
+    <input type="text" id="backendUrl" placeholder="https://tuoapp.up.railway.app">
+    <span id="urlSaved" style="display:none;color:var(--g);font-size:0.75rem;margin-top:6px">✓ URL salvato</span>
   </div>
 
-  <div class="card">
-    <span class="field-label">💰 Bankroll (€)</span>
-    <input type="number" id="bankroll" placeholder="es. 100" min="1" step="1"
-      style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--br);background:var(--c2);color:var(--tx);font-size:0.9rem"
-      oninput="localStorage.setItem('bankroll', this.value)">
-    <p style="color:var(--mu);font-size:0.72rem;margin-top:6px">Usato per calcolare la puntata Kelly consigliata su ogni pick</p>
+  <div class="card" style="display:flex;gap:12px">
+    <div style="flex:1">
+      <span class="field-label">💰 Bankroll (€)</span>
+      <input type="number" id="bankroll" placeholder="es. 80" min="1" step="1"
+        oninput="localStorage.setItem('bankroll',this.value)">
+    </div>
+    <div style="flex:1">
+      <span class="field-label">📊 Range quote GG</span>
+      <select id="oddsRange" onchange="localStorage.setItem('oddsRange',this.value)">
+        <option value="1.60-1.90">1.60 – 1.90</option>
+        <option value="1.70-2.00" selected>1.70 – 2.00</option>
+        <option value="1.80-2.10">1.80 – 2.10</option>
+        <option value="1.90-2.20">1.90 – 2.20</option>
+        <option value="2.00-2.30">2.00 – 2.30</option>
+      </select>
+    </div>
   </div>
 
-  <button onclick="loadTopValue()" id="valueBtn" class="top-btn" style="border-color:rgba(167,139,250,0.3);margin-bottom:12px">
-    💎 Top 5 VALUE Singole
-    <span style="font-size:0.8rem;opacity:0.8">per bankroll piccoli</span>
-  </button>
-
-  <button onclick="loadTopGoals()" id="topBtn" class="top-btn">
-    ⚽ Top 10 Goal/Goal
-    <span style="font-size:0.8rem;opacity:0.8">(quota 2.00–2.20)</span>
+  <button class="main-btn" id="mainBtn" onclick="loadGiornata()">
+    ⚽ Analizza la giornata
   </button>
 
   <div class="err-box" id="errBox"><strong>⚠️</strong> <span id="errMsg"></span></div>
 
-  <div id="topValueResults"></div>
-  <div id="topGoalsResults"></div>
+  <div id="results" style="display:none">
+    <div class="summary" id="summaryBar"></div>
+    <div class="tabs">
+      <div class="tab active" id="tabSingole" onclick="showTab('singole')">⚽ Singole <span id="cntS"></span></div>
+      <div class="tab pu" id="tabMultiple" onclick="showTab('multiple')">🎯 Multiple x3 <span id="cntM"></span></div>
+    </div>
+    <div class="section show" id="secSingole"></div>
+    <div class="section" id="secMultiple"></div>
+  </div>
 
 </div>
-
 <script>
-function saveUrl() {
-  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
-  if (url) {
-    localStorage.setItem('backendUrl', url);
-    document.getElementById('urlSaved').style.display = 'block';
-  }
-}
-
 window.onload = () => {
-  const saved = localStorage.getItem('backendUrl');
-  if (saved) {
-    document.getElementById('backendUrl').value = saved;
-    document.getElementById('urlSaved').style.display = 'block';
-  }
+  const url = localStorage.getItem('backendUrl');
+  if (url) { document.getElementById('backendUrl').value = url; document.getElementById('urlSaved').style.display='block'; }
   const bk = localStorage.getItem('bankroll');
   if (bk) document.getElementById('bankroll').value = bk;
+  const or = localStorage.getItem('oddsRange');
+  if (or) document.getElementById('oddsRange').value = or;
 };
 
-function showErr(msg) {
-  document.getElementById('errBox').classList.add('show');
-  document.getElementById('errMsg').textContent = msg;
+function saveUrl() {
+  const url = document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
+  if (url) { localStorage.setItem('backendUrl', url); document.getElementById('urlSaved').style.display='block'; }
 }
-function hideErr() {
-  document.getElementById('errBox').classList.remove('show');
-}
+function showErr(msg) { document.getElementById('errBox').classList.add('show'); document.getElementById('errMsg').textContent = msg; }
+function hideErr()    { document.getElementById('errBox').classList.remove('show'); }
 
-function fmtDate(iso) {
+function fmtTime(iso) {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString('it-IT', {
-    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-  });
+  return new Date(iso).toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
 }
 
-async function loadTopValue() {
+function showTab(tab) {
+  document.getElementById('secSingole').classList.toggle('show', tab === 'singole');
+  document.getElementById('secMultiple').classList.toggle('show', tab === 'multiple');
+  document.getElementById('tabSingole').classList.toggle('active', tab === 'singole');
+  document.getElementById('tabMultiple').classList.toggle('active', tab === 'multiple');
+}
+
+async function loadGiornata() {
   hideErr();
-  const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
+  const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/,'');
   if (!bu) { showErr("Inserisci l'URL del backend Railway"); return; }
   saveUrl();
 
-  const btn = document.getElementById('valueBtn');
-  const original = btn.innerHTML;
+  const range = document.getElementById('oddsRange').value;
+  const [oMin, oMax] = range.split('-');
+  const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
+
+  const btn = document.getElementById('mainBtn');
   btn.disabled = true;
   btn.innerHTML = '⏳ Analisi in corso...';
-  document.getElementById('topValueResults').innerHTML = '';
+  document.getElementById('results').style.display = 'none';
 
   try {
-    const res  = await fetch(`${bu}/top-value?top=5&min_edge=0.02`);
+    const res  = await fetch(`${bu}/giornata?odds_min=${oMin}&odds_max=${oMax}`);
     const data = await res.json();
-    if (data.error) { showErr(data.error); return; }
+    if (data.error) { showErr(data.error + (data.suggerimento ? ' — ' + data.suggerimento : '')); return; }
 
-    const picks    = data.picks || [];
-    const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
-    const totalKelly = picks.reduce((s, p) => s + (p.kelly_fraction || 0), 0);
-    const totalStake = bankroll > 0 ? (totalKelly * bankroll).toFixed(2) : null;
+    const singole  = data.singole  || [];
+    const multiple = data.multiple || [];
 
-    let html = `
-      <div class="result-card" style="border-color:rgba(167,139,250,0.25)">
-        <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px">
-          💎 Top ${picks.length} VALUE • ${data.day || 'Oggi'}
-        </div>
-        <div style="color:var(--mu);font-size:0.78rem;margin-bottom:18px">
-          ${data.total_analyzed} partite analizzate · ${data.total_value} con edge positivo
-          ${totalStake ? `· <strong style="color:#a78bfa">Puntata totale consigliata: €${totalStake}</strong>` : ''}
-        </div>`;
+    // Summary
+    document.getElementById('summaryBar').innerHTML = `
+      <div><div class="summary-num">${singole.length}</div><div class="summary-lbl">Singole GG</div></div>
+      <div><div class="summary-num pu">${multiple.length}</div><div class="summary-lbl">Multiple x3</div></div>
+      <div><div class="summary-num" style="color:var(--ye);font-size:1rem">${data.day||'oggi'}</div><div class="summary-lbl">${data.date||''}</div></div>`;
 
-    picks.forEach(p => {
-      const prob     = parseFloat(p.probability);
-      const edgePct  = parseFloat(p.edge_pct);
-      const kf       = p.kelly_fraction || 0;
-      const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
-      // edge bar: scala 0-15% come 100%
-      const edgeBar  = Math.min(edgePct / 15 * 100, 100).toFixed(0);
+    document.getElementById('cntS').textContent = `(${singole.length})`;
+    document.getElementById('cntM').textContent = `(${multiple.length})`;
 
-      html += `
-        <div class="value-pick">
-          <div style="display:flex;align-items:center;margin-bottom:6px">
-            <span class="rank-badge">${p.rank}</span>
-            <span style="color:var(--mu);font-size:0.8rem;font-weight:600">${p.league}</span>
-          </div>
-          <div class="pick-match">${p.match}</div>
-          <div class="pick-market" style="color:#a78bfa;margin-bottom:8px">
-            ${p.market}
-            <span style="background:rgba(167,139,250,0.18);color:#a78bfa;font-size:0.7rem;padding:2px 8px;border-radius:6px;margin-left:6px">
-              Edge +${p.edge_pct}
-            </span>
-          </div>
-
-          <div class="pick-info">
-            <div>
-              <span class="pick-odd">@${p.odds}</span>
+    // -- SINGOLE --
+    let sHtml = '';
+    if (!singole.length) {
+      sHtml = `<div class="err-box show">Nessuna singola GG nel range ${range.replace('-',' – ')}</div>`;
+    } else {
+      singole.forEach(p => {
+        const prob     = parseFloat(p.probability);
+        const kf       = p.kelly_fraction || 0;
+        const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
+        const isPos    = (p.edge || 0) > 0;
+        const qIcon    = p.data_quality === 'high' ? '🟢' : p.data_quality === 'medium' ? '🟡' : '🔴';
+        sHtml += `
+          <div class="pick">
+            <div class="pick-league">${p.league} · ${fmtTime(p.commence_time)}</div>
+            <div class="pick-match">${p.match}</div>
+            <div class="pick-row">
+              <div>
+                <span class="pick-odd">@${p.odds}</span>
+                <span class="edge-badge ${isPos?'edge-pos':'edge-neg'}">${isPos?'+':''}${p.edge_pct}</span>
+              </div>
+              <div style="text-align:right">
+                <div class="pick-prob">${p.probability}</div>
+                <div class="pick-time">${qIcon} ${p.data_quality}</div>
+              </div>
             </div>
-            <div style="text-align:right">
-              <span class="pick-prob" style="color:#a78bfa">${p.probability}</span><br>
-              <span class="pick-time">${fmtDate(p.commence_time)}</span>
+            ${kf > 0 ? `
+            <div class="pick-kelly">
+              <span class="kbadge">Kelly ¼</span>
+              <span>${p.kelly_pct} bankroll</span>
+              ${kellyEur ? `<span class="kstake">→ €${kellyEur}</span>` : ''}
+            </div>` : `
+            <div class="pick-kelly" style="color:var(--mu)">
+              <span class="kbadge" style="background:rgba(107,127,163,.1);color:var(--mu)">No edge</span>
+              <span>Puntata sconsigliata</span>
+            </div>`}
+            <div class="bar"><div class="bar-fill" style="width:${prob}%"></div></div>
+          </div>`;
+      });
+    }
+    document.getElementById('secSingole').innerHTML = sHtml;
+
+    // -- MULTIPLE --
+    let mHtml = '';
+    if (!multiple.length) {
+      mHtml = `<div class="err-box show">Non abbastanza partite per costruire multiple da 3.</div>`;
+    } else {
+      multiple.forEach((m, i) => {
+        const kf       = m.kelly_fraction || 0;
+        const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
+        mHtml += `
+          <div class="multi">
+            <div class="multi-header">
+              <div>
+                <span class="multi-odds">@${m.total_odds}</span>
+                ${m.value ? `<span class="value-tag" style="margin-left:8px">VALUE</span>` : ''}
+              </div>
+              <div style="text-align:right">
+                <div class="multi-prob">${m.combo_prob}</div>
+                <div style="font-size:0.7rem;color:var(--mu)">#${i+1} di ${multiple.length}</div>
+              </div>
             </div>
-          </div>
+            ${m.picks.map(p => `
+              <div class="multi-pick">
+                <div>
+                  <div class="multi-pick-name">${p.match}</div>
+                  <div class="multi-pick-sub">${p.league} · ${fmtTime(p.commence_time)}</div>
+                </div>
+                <span class="multi-pick-odd">@${p.odds}</span>
+              </div>`).join('')}
+            <div class="multi-kelly">
+              <span class="kbadge">Kelly ¼</span>
+              <span>${m.kelly_pct} bankroll</span>
+              ${kellyEur ? `<span class="kstake">→ €${kellyEur}</span>` : ''}
+            </div>
+          </div>`;
+      });
+      mHtml += `<div style="color:var(--mu);font-size:0.72rem;text-align:center;padding:8px">
+        Le multiple sono ordinate per probabilità combinata decrescente. La #1 è la più probabile.
+      </div>`;
+    }
+    document.getElementById('secMultiple').innerHTML = mHtml;
 
-          <div class="pick-kelly" style="margin-top:10px">
-            <span class="kelly-badge">Kelly ¼</span>
-            <span>${p.kelly_pct} del bankroll</span>
-            ${kellyEur ? `<span class="kelly-stake">→ €${kellyEur}</span>` : ''}
-          </div>
-
-          <div class="edge-bar-container">
-            <div class="edge-bar-fill" style="width:${edgeBar}%"></div>
-          </div>
-        </div>`;
-    });
-
-    html += `
-      <div style="color:var(--mu);font-size:0.72rem;text-align:center;margin-top:8px;padding:0 8px">
-        ⚡ Gioca ogni singola separatamente · Non combinare in multipla · Rispetta il Kelly
-      </div>
-    </div>`;
-    document.getElementById('topValueResults').innerHTML = html;
+    document.getElementById('results').style.display = 'block';
+    showTab('singole');
 
   } catch(e) {
-    showErr("Errore di connessione al backend: " + e.message);
+    showErr("Errore di connessione: " + e.message);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = original;
-  }
-}
-
-async function loadTopGoals() {
-  hideErr();
-  const bu = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
-  if (!bu) {
-    showErr("Inserisci l'URL del backend Railway");
-    return;
-  }
-  saveUrl();
-
-  const btn = document.getElementById('topBtn');
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = '⏳ Caricamento in corso...';
-
-  document.getElementById('topGoalsResults').innerHTML = '';
-
-  try {
-    const res = await fetch(`${bu}/top-goals?odds_min=2.00&odds_max=2.20&top=10`);
-    const data = await res.json();
-
-    if (data.error) {
-      showErr(data.error);
-      return;
-    }
-
-    const picks = data.picks || [];
-    if (picks.length === 0) {
-      document.getElementById('topGoalsResults').innerHTML = `<div class="err-box show">Nessuna partita trovata nel range quota.</div>`;
-      return;
-    }
-
-    let html = `
-      <div class="result-card">
-        <div style="font-size:1.1rem;font-weight:700;margin-bottom:18px">
-          ⚽ Top ${picks.length} Goal/Goal • ${data.day || 'Prossimi giorni'}
-        </div>`;
-
-    picks.forEach(p => {
-      const prob = Math.round((p.prob_raw || p.prob || 0) * 100);
-      const isValue = (p.edge || 0) > 0.02;
-      const market = p.name || p.market || "Over 2.5 / GG";
-      const bankroll = parseFloat(document.getElementById('bankroll').value) || 0;
-      const kf = p.kelly_fraction || 0;
-      const kellyPct = (kf * 100).toFixed(1);
-      const kellyEur = bankroll > 0 ? (kf * bankroll).toFixed(2) : null;
-
-      html += `
-        <div class="pick">
-          <div class="pick-league">${p.league || 'Campionato'}</div>
-          <div class="pick-match">${p.match}</div>
-          <div class="pick-market">
-            ${market}
-            ${isValue ? `<span style="background:rgba(0,230,118,0.2);color:var(--g);font-size:0.7rem;padding:2px 8px;border-radius:6px;margin-left:8px">VALUE</span>` : ''}
-          </div>
-          
-          <div class="pick-info">
-            <div>
-              <span class="pick-odd">@${p.odds}</span>
-            </div>
-            <div style="text-align:right">
-              <span class="pick-prob">${prob}%</span><br>
-              <span class="pick-time">${fmtDate(p.commence_time)}</span>
-            </div>
-          </div>
-
-          ${kf > 0 ? `
-          <div class="pick-kelly">
-            <span class="kelly-badge">Kelly ¼</span>
-            <span>${kellyPct}% del bankroll</span>
-            ${kellyEur ? `<span class="kelly-stake">→ €${kellyEur}</span>` : ''}
-          </div>` : `
-          <div class="pick-kelly" style="color:#6b7fa3">
-            <span class="kelly-badge" style="background:rgba(107,127,163,0.12);color:#6b7fa3">No edge</span>
-            <span>Puntata sconsigliata</span>
-          </div>`}
-          
-          <div class="bar-container">
-            <div class="bar-fill" style="width: ${prob}%"></div>
-          </div>
-        </div>`;
-    });
-
-    html += `</div>`;
-    document.getElementById('topGoalsResults').innerHTML = html;
-
-  } catch (e) {
-    showErr("Errore di connessione al backend: " + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = original;
+    btn.innerHTML = '⚽ Analizza la giornata';
   }
 }
 </script>
