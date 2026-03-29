@@ -1013,5 +1013,58 @@ def generate():
         "duration_ms": duration_ms, "source": "sofascore",
     })
 
+
+@app.route("/debug")
+def debug():
+    """Endpoint diagnostico - mostra cosa vede il sistema step by step."""
+    now_utc = datetime.now(timezone.utc)
+    now_it  = now_utc.astimezone(ITALY_TZ)
+    date_str = request.args.get("date") or now_it.strftime("%Y-%m-%d")
+    
+    # Step 1: eventi da SofaScore
+    events = get_today_events(date_str)
+    total_events = len(events)
+    
+    # Step 2: quanti sono not-started
+    not_started = [e for e in events if e.get("status", {}).get("type", "") not in 
+                   ["inprogress", "finished", "postponed", "canceled"]]
+    
+    # Step 3: campiona 5 partite non iniziate e controlla le odds
+    sample_odds = []
+    for ev in not_started[:5]:
+        eid = ev.get("id")
+        hn  = ev.get("homeTeam", {}).get("name", "?")
+        an  = ev.get("awayTeam", {}).get("name", "?")
+        ct  = ev.get("startTimestamp", 0)
+        ev_time = datetime.fromtimestamp(ct, tz=timezone.utc).isoformat() if ct else "?"
+        odds = get_event_odds(eid)
+        sample_odds.append({
+            "match":      f"{hn} vs {an}",
+            "event_id":   eid,
+            "kickoff":    ev_time,
+            "status":     ev.get("status", {}).get("type", "?"),
+            "odds_found": odds,
+            "has_gg":     "Yes" in odds,
+        })
+    
+    # Step 4: analizza una partita completa (prima not-started con stats)
+    full_sample = None
+    start = now_utc
+    end   = now_it.replace(hour=23, minute=59, second=59).astimezone(timezone.utc)
+    for ev in not_started[:20]:
+        result = analyze_event(ev, start, end)
+        if result:
+            full_sample = result[0]
+            break
+    
+    return jsonify({
+        "date":              date_str,
+        "ora_server":        now_it.isoformat(),
+        "step1_totale_eventi": total_events,
+        "step2_non_iniziate":  len(not_started),
+        "step3_sample_odds":   sample_odds,
+        "step4_primo_pick":    full_sample,
+    })
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
