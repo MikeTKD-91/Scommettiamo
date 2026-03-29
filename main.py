@@ -433,9 +433,12 @@ def analyze_event(ev, start_utc, end_utc):
     ct = ev.get("startTimestamp")
     if not ct: return []
     ev_time = datetime.fromtimestamp(ct, tz=timezone.utc)
-    if not (start_utc <= ev_time <= end_utc): return []
-    if ev.get("status", {}).get("type", "") in ["inprogress", "finished", "postponed", "canceled"]:
+    # Scarta solo partite gia' terminate o in corso
+    status_type = ev.get("status", {}).get("type", "")
+    if status_type in ("inprogress", "finished", "postponed", "canceled"):
         return []
+    # Accetta partite nel giorno richiesto (dalla mezzanotte alla fine)
+    if not (start_utc <= ev_time <= end_utc): return []
     ht  = ev.get("homeTeam", {}); at  = ev.get("awayTeam", {})
     hn  = ht.get("name", "");     an  = at.get("name", "")
     hid = ht.get("id");           aid = at.get("id")
@@ -627,7 +630,7 @@ def giornata():
     now_it   = now_utc.astimezone(ITALY_TZ)
     date_req = request.args.get("date")
 
-    # Cerca oggi, poi domani se oggi è vuoto
+    # Cerca oggi + domani accumulando picks futuri
     gg_picks = []
     used_date = None
     day_label = "oggi"
@@ -637,7 +640,9 @@ def giornata():
     for day_offset in range(3):
         day_dt   = now_it.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=day_offset)
         date_str = date_req if date_req else day_dt.strftime("%Y-%m-%d")
-        start    = now_utc if day_offset == 0 else day_dt.astimezone(timezone.utc)
+        # FIX: usa sempre mezzanotte come start, non l'ora attuale
+        # Cosi' non scarta le partite gia' passate oggi ma non ancora finite di essere indicizzate
+        start    = day_dt.astimezone(timezone.utc)
         end      = (now_it.replace(hour=23, minute=59, second=59) + timedelta(days=day_offset)).astimezone(timezone.utc)
         events   = get_today_events(date_str)
         total_events_analyzed += len(events)
@@ -1026,6 +1031,10 @@ def debug():
     total_events = len(events)
     
     # Step 2: quanti sono not-started
+    status_counts = {}
+    for e in events:
+        st = e.get("status", {}).get("type", "unknown")
+        status_counts[st] = status_counts.get(st, 0) + 1
     not_started = [e for e in events if e.get("status", {}).get("type", "") not in 
                    ["inprogress", "finished", "postponed", "canceled"]]
     
@@ -1061,6 +1070,7 @@ def debug():
         "date":              date_str,
         "ora_server":        now_it.isoformat(),
         "step1_totale_eventi": total_events,
+        "step1b_status_breakdown": status_counts,
         "step2_non_iniziate":  len(not_started),
         "step3_sample_odds":   sample_odds,
         "step4_primo_pick":    full_sample,
